@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, BookOpen, TrendingUp, FileText, 
-  GraduationCap, Menu, X, LogOut
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { 
+  LayoutDashboard, BookOpen, TrendingUp, FileText, 
+  GraduationCap, Menu, X, LogOut, MessageSquare
+} from "lucide-react";
 
 const navItems = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/practice", icon: BookOpen, label: "Practice" },
+  { path: "/tutor", icon: MessageSquare, label: "AI Tutor" },
   { path: "/progress", icon: TrendingUp, label: "Progress" },
   { path: "/study-guide", icon: FileText, label: "Study Guide" },
 ];

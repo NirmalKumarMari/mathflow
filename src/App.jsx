@@ -17,6 +17,7 @@ import Onboarding from '@/pages/Onboarding';
 import Practice from '@/pages/Practice';
 import Progress from '@/pages/Progress';
 import StudyGuidePage from '@/pages/StudyGuidePage';
+import TutorChat from '@/pages/TutorChat';
 import AppLayout from '@/components/layout/AppLayout';
 
 const AuthenticatedApp = () => {
@@ -55,6 +56,7 @@ const AuthenticatedApp = () => {
           <Route path="/practice" element={<Practice />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/study-guide" element={<StudyGuidePage />} />
+          <Route path="/tutor" element={<TutorChat />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
