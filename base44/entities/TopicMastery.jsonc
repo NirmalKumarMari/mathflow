@@ -1,0 +1,56 @@
+{
+  "name": "TopicMastery",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Main topic name"
+    },
+    "subtopic": {
+      "type": "string",
+      "description": "Subtopic name"
+    },
+    "mastery_score": {
+      "type": "number",
+      "description": "Mastery score 0-100"
+    },
+    "questions_attempted": {
+      "type": "number",
+      "default": 0
+    },
+    "questions_correct": {
+      "type": "number",
+      "default": 0
+    },
+    "consecutive_failures": {
+      "type": "number",
+      "default": 0
+    },
+    "difficulty_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "default": "beginner"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "mastered",
+        "needs_review"
+      ],
+      "default": "not_started"
+    },
+    "last_practiced": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "topic"
+  ]
+}

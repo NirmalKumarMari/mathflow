@@ -1,0 +1,50 @@
+{
+  "name": "StudyGuide",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "adjusted",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Topics the student is strong in"
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Topics needing improvement"
+    },
+    "next_topics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended next topics to study"
+    },
+    "plan_details": {
+      "type": "string",
+      "description": "Detailed study plan text"
+    },
+    "student_feedback": {
+      "type": "string",
+      "description": "Student's adjustment request"
+    }
+  },
+  "required": []
+}

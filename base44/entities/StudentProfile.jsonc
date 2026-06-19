@@ -1,0 +1,62 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "age": {
+      "type": "number",
+      "description": "Student's age"
+    },
+    "grade_level": {
+      "type": "string",
+      "enum": [
+        "6th",
+        "7th",
+        "8th",
+        "9th",
+        "10th",
+        "11th",
+        "12th",
+        "adaptive"
+      ],
+      "description": "Student's grade level"
+    },
+    "goals": {
+      "type": "string",
+      "description": "What the student wants to achieve"
+    },
+    "use_case": {
+      "type": "string",
+      "description": "How they plan to use the app"
+    },
+    "preferred_explanation_style": {
+      "type": "string",
+      "enum": [
+        "visual",
+        "step-by-step",
+        "analogy",
+        "socratic"
+      ],
+      "default": "step-by-step"
+    },
+    "current_topic": {
+      "type": "string",
+      "description": "Currently active topic"
+    },
+    "overall_mastery": {
+      "type": "number",
+      "description": "Overall mastery percentage 0-100"
+    },
+    "onboarding_complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "session_state": {
+      "type": "object",
+      "description": "Cached session state for resume on login"
+    }
+  },
+  "required": [
+    "age",
+    "grade_level"
+  ]
+}
