@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
-import ReactMarkdown from "react-markdown";
+import StyledMarkdown from "@/components/ui/markdown";
 
 // Section types matching the PDF template
 const SECTION_TYPES = ["Conceptual Foundation", "Key Formulas", "Worked Examples", "Common Mistakes", "Practice Problems"];
@@ -255,8 +255,8 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="px-4 pb-4 prose prose-sm max-w-none text-foreground border-t border-border pt-4">
-                        <ReactMarkdown>{sec.content}</ReactMarkdown>
+                      <div className="px-4 pb-4 border-t border-border pt-4">
+                        <StyledMarkdown>{sec.content}</StyledMarkdown>
                       </div>
                     </motion.div>
                   )}
