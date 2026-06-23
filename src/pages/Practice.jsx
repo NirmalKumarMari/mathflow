@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, XCircle, Lightbulb, BookOpen, ArrowRight, Loader2, RotateCcw } from "lucide-react";
+import { Send, CheckCircle, XCircle, Lightbulb, BookOpen, ArrowRight, Loader2, RotateCcw, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
@@ -25,6 +25,9 @@ export default function Practice() {
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showFullSolution, setShowFullSolution] = useState(false);
+  const [loadingSolution, setLoadingSolution] = useState(false);
+  const [fullSolution, setFullSolution] = useState(null);
   const [showResources, setShowResources] = useState(false);
   const [resources, setResources] = useState("");
   const [sessionQuestions, setSessionQuestions] = useState(0);
@@ -51,6 +54,8 @@ export default function Practice() {
     setFeedback(null);
     setAnswer("");
     setShowHint(false);
+    setShowFullSolution(false);
+    setFullSolution(null);
     setShowResources(false);
 
     const difficulty = getDifficulty();
@@ -183,6 +188,77 @@ Format with markdown.`,
     setResources(res);
   };
 
+  const revealFullSolution = async () => {
+    if (!currentQuestion || !selectedTopic) return;
+    setLoadingSolution(true);
+    setShowFullSolution(true);
+
+    // Generate full step-by-step solution
+    const solution = await base44.integrations.Core.InvokeLLM({
+      prompt: `Provide a complete, detailed step-by-step solution for this math problem.
+Topic: ${selectedTopic.name}
+Question: ${currentQuestion.question}
+Correct Answer: ${currentQuestion.correct_answer}
+Student grade: ${profile?.grade_level || "adaptive"}
+
+Walk through every step clearly. Explain WHY each step is done, not just what to do. Use numbered steps.`,
+    });
+    setFullSolution(solution);
+
+    // Apply mastery penalty — revealing solution counts as wrong with extra penalty
+    const current = topicMastery || { questions_attempted: 0, questions_correct: 0, mastery_score: 0, consecutive_failures: 0 };
+    const newAttempted = (current.questions_attempted || 0) + 1;
+    const newCorrect = current.questions_correct || 0;
+    const newConsecFail = (current.consecutive_failures || 0) + 2; // heavier penalty
+    const rawScore = newAttempted > 0 ? Math.round((newCorrect / newAttempted) * 100) : 0;
+    const newScore = Math.max(0, rawScore - 5); // extra score penalty
+    const newStatus = newConsecFail >= 3 ? "needs_review" : "in_progress";
+
+    await upsertMastery.mutateAsync({
+      topic: selectedTopic.name,
+      updates: {
+        mastery_score: newScore,
+        questions_attempted: newAttempted,
+        questions_correct: newCorrect,
+        consecutive_failures: newConsecFail,
+        difficulty_level: getDifficulty(),
+        status: newStatus,
+        last_practiced: new Date().toISOString(),
+      }
+    });
+
+    // Save question record as incorrect (used full solution)
+    await base44.entities.PracticeQuestion.create({
+      topic: selectedTopic.name,
+      subtopic: currentQuestion.subtopic,
+      difficulty: currentQuestion.difficulty,
+      question_text: currentQuestion.question,
+      correct_answer: currentQuestion.correct_answer,
+      student_answer: "[revealed full solution]",
+      is_correct: false,
+      explanation: "Student revealed the full solution instead of answering.",
+      hints: currentQuestion.hints,
+    });
+
+    // Update study guide to flag this topic as needing work
+    try {
+      const guides = await base44.entities.StudyGuide.filter({}, "-created_date", 1);
+      const latestGuide = guides[0];
+      if (latestGuide) {
+        const updatedGaps = [...new Set([...(latestGuide.gaps || []), selectedTopic.name])];
+        const updatedStrengths = (latestGuide.strengths || []).filter(s => s !== selectedTopic.name);
+        await base44.entities.StudyGuide.update(latestGuide.id, {
+          gaps: updatedGaps,
+          strengths: updatedStrengths,
+        });
+      }
+    } catch (e) {
+      // non-critical, ignore
+    }
+
+    setLoadingSolution(false);
+  };
+
   const relevantTopics = profile ? SYLLABUS_TOPICS.filter(t =>
     t.grades.includes(profile.grade_level) || profile.grade_level === "adaptive"
   ) : SYLLABUS_TOPICS;
@@ -256,15 +332,57 @@ Format with markdown.`,
                   animate={{ opacity: 1, height: "auto" }}
                   className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800"
                 >
-                  <div className="flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>{currentQuestion.hints}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{currentQuestion.hints}</span>
+                    </div>
+                    {!showFullSolution && !feedback && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-100 gap-1 flex-shrink-0"
+                        onClick={revealFullSolution}
+                        disabled={loadingSolution}
+                      >
+                        {loadingSolution ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                        Show Full Solution
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               )}
 
+              {/* Full Solution */}
+              {showFullSolution && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="p-4 rounded-xl bg-violet-50 border border-violet-200 space-y-2"
+                >
+                  <p className="text-xs font-semibold text-violet-700 flex items-center gap-1">
+                    <Eye className="w-3 h-3" /> Full Solution Revealed
+                    <span className="ml-1 text-violet-500 font-normal">— this topic has been flagged for extra practice</span>
+                  </p>
+                  {loadingSolution ? (
+                    <div className="flex items-center gap-2 text-sm text-violet-700">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Generating solution...
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      <ReactMarkdown>{fullSolution}</ReactMarkdown>
+                    </div>
+                  )}
+                  {!loadingSolution && (
+                    <Button size="sm" onClick={generateQuestion} className="mt-2 gap-2">
+                      Next Question <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                </motion.div>
+              )}
+
               {/* Answer Input */}
-              {!feedback && (
+              {!feedback && !showFullSolution && (
                 <div className="flex gap-2">
                   <Input
                     ref={inputRef}

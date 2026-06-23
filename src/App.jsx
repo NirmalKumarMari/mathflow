@@ -18,6 +18,7 @@ import Practice from '@/pages/Practice';
 import Progress from '@/pages/Progress';
 import StudyGuidePage from '@/pages/StudyGuidePage';
 import TutorChat from '@/pages/TutorChat';
+import Foundation from '@/pages/Foundation';
 import AppLayout from '@/components/layout/AppLayout';
 
 const AuthenticatedApp = () => {
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
           <Route path="/progress" element={<Progress />} />
           <Route path="/study-guide" element={<StudyGuidePage />} />
           <Route path="/tutor" element={<TutorChat />} />
+          <Route path="/foundation" element={<Foundation />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
