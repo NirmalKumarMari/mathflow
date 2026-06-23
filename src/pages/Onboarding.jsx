@@ -74,8 +74,9 @@ Create a personalized initial study guide. Return JSON:
     const relevantTopics = SYLLABUS_TOPICS.filter(t => 
       t.grades.includes(formData.grade_level) || formData.grade_level === "adaptive"
     );
+    const topicsToCreate = relevantTopics.length > 0 ? relevantTopics : SYLLABUS_TOPICS;
     await base44.entities.TopicMastery.bulkCreate(
-      relevantTopics.map(t => ({
+      topicsToCreate.map(t => ({
         topic: t.name,
         mastery_score: 0,
         questions_attempted: 0,
