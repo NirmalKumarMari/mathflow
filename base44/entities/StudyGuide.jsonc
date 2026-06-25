@@ -44,6 +44,19 @@
     "student_feedback": {
       "type": "string",
       "description": "Student's adjustment request"
+    },
+    "weekly_idea": {
+      "type": "string",
+      "description": "A specific study idea or tip for the week"
+    },
+    "weekly_review": {
+      "type": "string",
+      "description": "AI weekly analysis of the student's problem-solving patterns and mistakes"
+    },
+    "last_review_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last weekly review was approved"
     }
   },
   "required": []

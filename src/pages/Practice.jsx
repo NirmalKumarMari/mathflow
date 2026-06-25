@@ -12,6 +12,7 @@ import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile"
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import { getProblemCreatorPrompt } from "@/lib/agentPrompts";
 import ReactMarkdown from "react-markdown";
+import HelpChat from "@/components/help/HelpChat";
 
 export default function Practice() {
   const [searchParams] = useSearchParams();
@@ -34,7 +35,22 @@ export default function Practice() {
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const inputRef = useRef(null);
 
-  const selectedTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
+  const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
+  const subjectId = searchParams.get("subject");
+  const [customTopic, setCustomTopic] = useState(null);
+
+  useEffect(() => {
+    if (selectedTopicId && !syllabusTopic && subjectId) {
+      base44.entities.Subject.get(subjectId).then(sub => {
+        const t = (sub.topics || []).find(t => t.id === selectedTopicId);
+        if (t) setCustomTopic(t);
+      }).catch(() => {});
+    } else {
+      setCustomTopic(null);
+    }
+  }, [selectedTopicId, syllabusTopic, subjectId]);
+
+  const selectedTopic = syllabusTopic || customTopic;
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
 
   useEffect(() => {
@@ -483,6 +499,8 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
           </p>
         </Card>
       )}
+
+      <HelpChat context={selectedTopic ? `Practicing ${selectedTopic.name}. Current question: ${currentQuestion?.question || "None yet"}` : "Math practice"} />
     </div>
   );
 }

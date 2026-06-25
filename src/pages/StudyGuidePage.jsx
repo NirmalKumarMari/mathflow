@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle, AlertTriangle, ArrowRight, ThumbsUp, Pencil, RotateCcw, Loader2, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { CheckCircle, AlertTriangle, ArrowRight, ThumbsUp, Pencil, RotateCcw, Loader2, Sparkles, Calendar, Brain, Lightbulb, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries, useStudyGuides } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
-import ReactMarkdown from "react-markdown";
+import StyledMarkdown from "@/components/ui/markdown";
 
 export default function StudyGuidePage() {
   const navigate = useNavigate();
@@ -20,6 +20,115 @@ export default function StudyGuidePage() {
   const [adjustText, setAdjustText] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Weekly review state
+  const [weeklyReview, setWeeklyReview] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewNeeded, setReviewNeeded] = useState(false);
+
+  // Check if weekly review is needed
+  useEffect(() => {
+    if (!latestGuide) return;
+    const lastReview = latestGuide.last_review_date ? new Date(latestGuide.last_review_date) : null;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    if (!lastReview || lastReview < sevenDaysAgo) {
+      setReviewNeeded(true);
+    }
+  }, [latestGuide]);
+
+  // Auto-generate weekly review when needed
+  useEffect(() => {
+    if (reviewNeeded && latestGuide && !weeklyReview && !reviewLoading) {
+      generateWeeklyReview();
+    }
+  }, [reviewNeeded, latestGuide]);
+
+  const generateWeeklyReview = async () => {
+    setReviewLoading(true);
+    try {
+      // Fetch recent practice questions
+      const recentQuestions = await base44.entities.PracticeQuestion.list("-created_date", 20);
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an educational AI analyzing a student's weekly performance to improve their study guide.
+
+Student grade: ${profile?.grade_level || "adaptive"}
+Goals: ${profile?.goals || "Not specified"}
+
+Recent practice results (last 20 questions):
+${recentQuestions.map(q => `- ${q.topic}: ${q.is_correct ? "Correct" : "Incorrect"} | Q: ${q.question_text?.substring(0, 80)} | Student: ${q.student_answer}`).join("\n") || "No practice data yet."}
+
+Current study guide:
+- Strengths: ${latestGuide?.strengths?.join(", ") || "None"}
+- Gaps: ${latestGuide?.gaps?.join(", ") || "None"}
+- Next topics: ${latestGuide?.next_topics?.join(", ") || "None"}
+
+Analyze the student's problem-solving patterns and mistakes. Then:
+1. Identify their thinking patterns — do they rush? Misread questions? Make calculation errors? Struggle with specific concepts?
+2. Give specific, actionable tips on the mistakes they're making
+3. Suggest an updated study guide with revised strengths, gaps, and next topics
+4. Provide a "weekly idea" — one specific, actionable study strategy for this week
+
+Return JSON:
+{
+  "analysis": "markdown analysis of their problem-solving patterns and mistakes",
+  "tips": "markdown tips for improvement",
+  "weekly_idea": "one specific actionable study idea for this week",
+  "updated_strengths": ["revised strengths"],
+  "updated_gaps": ["revised gaps"],
+  "updated_next_topics": ["revised next topics"],
+  "updated_plan": "revised study plan"
+}`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            analysis: { type: "string" },
+            tips: { type: "string" },
+            weekly_idea: { type: "string" },
+            updated_strengths: { type: "array", items: { type: "string" } },
+            updated_gaps: { type: "array", items: { type: "string" } },
+            updated_next_topics: { type: "array", items: { type: "string" } },
+            updated_plan: { type: "string" }
+          }
+        }
+      });
+
+      setWeeklyReview(response);
+    } catch {
+      setReviewNeeded(false);
+    }
+    setReviewLoading(false);
+  };
+
+  const approveWeeklyReview = async () => {
+    if (!weeklyReview || !latestGuide) return;
+    setLoading(true);
+
+    await createGuide.mutateAsync({
+      version: (latestGuide.version || 1) + 1,
+      status: "approved",
+      strengths: weeklyReview.updated_strengths || latestGuide.strengths || [],
+      gaps: weeklyReview.updated_gaps || latestGuide.gaps || [],
+      next_topics: weeklyReview.updated_next_topics || latestGuide.next_topics || [],
+      plan_details: weeklyReview.updated_plan || latestGuide.plan_details || "",
+      weekly_idea: weeklyReview.weekly_idea,
+      weekly_review: weeklyReview.analysis + "\n\n**Tips:**\n" + weeklyReview.tips,
+      last_review_date: new Date().toISOString(),
+    });
+
+    await updateGuide.mutateAsync({ id: latestGuide.id, data: { status: "declined" } });
+
+    setWeeklyReview(null);
+    setReviewNeeded(false);
+    setLoading(false);
+  };
+
+  const dismissWeeklyReview = async () => {
+    if (!latestGuide) return;
+    await updateGuide.mutateAsync({ id: latestGuide.id, data: { last_review_date: new Date().toISOString() } });
+    setWeeklyReview(null);
+    setReviewNeeded(false);
+  };
 
   if (profileLoading || guidesLoading) {
     return (
@@ -72,9 +181,9 @@ Revise the study guide based on the student's request. Return JSON:
       }
     });
 
-    await updateGuide.mutateAsync({ 
-      id: latestGuide.id, 
-      data: { status: "adjusted", student_feedback: adjustText } 
+    await updateGuide.mutateAsync({
+      id: latestGuide.id,
+      data: { status: "adjusted", student_feedback: adjustText }
     });
 
     await createGuide.mutateAsync({
@@ -164,6 +273,82 @@ Return JSON:
         </div>
       </div>
 
+      {/* Weekly Review Banner */}
+      {reviewNeeded && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="p-5 border-primary/30 bg-primary/5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-foreground">Weekly Review Ready</p>
+                <p className="text-xs text-muted-foreground">Your AI analyzed your recent practice — review and approve the updates</p>
+              </div>
+            </div>
+
+            {reviewLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing your recent practice...
+              </div>
+            ) : weeklyReview ? (
+              <div className="space-y-4">
+                {/* Analysis */}
+                <div className="p-4 rounded-xl bg-card border border-border">
+                  <p className="text-xs font-semibold text-primary flex items-center gap-1 mb-2">
+                    <Brain className="w-3 h-3" /> Problem-Solving Analysis
+                  </p>
+                  <StyledMarkdown>{weeklyReview.analysis}</StyledMarkdown>
+                </div>
+
+                {/* Tips */}
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-xs font-semibold text-amber-700 flex items-center gap-1 mb-2">
+                    <Lightbulb className="w-3 h-3" /> Tips for Improvement
+                  </p>
+                  <StyledMarkdown>{weeklyReview.tips}</StyledMarkdown>
+                </div>
+
+                {/* Weekly Idea */}
+                {weeklyReview.weekly_idea && (
+                  <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
+                    <p className="text-xs font-semibold text-violet-700 flex items-center gap-1 mb-2">
+                      <Sparkles className="w-3 h-3" /> This Week's Study Idea
+                    </p>
+                    <p className="text-sm text-foreground">{weeklyReview.weekly_idea}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button onClick={approveWeeklyReview} disabled={loading} className="gap-2">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
+                    Approve & Update Guide
+                  </Button>
+                  <Button variant="ghost" onClick={dismissWeeklyReview} className="gap-2 text-muted-foreground">
+                    <X className="w-4 h-4" /> Skip This Week
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Current Weekly Idea (from approved guide) */}
+      {latestGuide.weekly_idea && !reviewNeeded && (
+        <Card className="p-5 border-violet-200 bg-violet-50">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-violet-700 mb-1">This Week's Study Idea</p>
+              <p className="text-sm text-foreground">{latestGuide.weekly_idea}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Strengths */}
       {latestGuide.strengths?.length > 0 && (
         <Card className="p-5">
@@ -215,19 +400,13 @@ Return JSON:
       {latestGuide.plan_details && (
         <Card className="p-5">
           <h3 className="font-display font-semibold text-foreground mb-3">Study Plan</h3>
-          <div className="prose prose-sm max-w-none text-muted-foreground">
-            <ReactMarkdown>{latestGuide.plan_details}</ReactMarkdown>
-          </div>
+          <StyledMarkdown className="text-muted-foreground">{latestGuide.plan_details}</StyledMarkdown>
         </Card>
       )}
 
       {/* Action Buttons */}
       {latestGuide.status === "pending" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <Card className="p-5 border-primary/20 bg-primary/5">
             <p className="text-sm text-foreground mb-4">Do you agree with this study plan?</p>
             <div className="flex flex-wrap gap-3">

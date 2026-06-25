@@ -24,7 +24,7 @@ export default function TopicCard({ topic, mastery, onClick }) {
         <div>
           <h3 className={`font-heading font-semibold text-sm ${colors.text}`}>{topic.name}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {topic.subtopics.length} subtopics · {topic.grades.join(", ")}
+            {topic.subtopics.length} subtopics{topic.grades ? ` · ${topic.grades.join(", ")}` : ""}
           </p>
         </div>
         {statusIcons[status]}

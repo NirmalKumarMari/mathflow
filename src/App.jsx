@@ -13,6 +13,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import Dashboard from '@/pages/Dashboard';
+import SubjectDashboard from '@/pages/SubjectDashboard';
 import Onboarding from '@/pages/Onboarding';
 import Practice from '@/pages/Practice';
 import Progress from '@/pages/Progress';
@@ -53,7 +54,8 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/onboarding" element={<Onboarding />} />
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<SubjectDashboard />} />
+          <Route path="/subject/:subjectId" element={<Dashboard />} />
           <Route path="/practice" element={<Practice />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/study-guide" element={<StudyGuidePage />} />

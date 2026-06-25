@@ -1,0 +1,66 @@
+{
+  "name": "Subject",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name e.g. '7th Grade Math', 'Physics'"
+    },
+    "subject_type": {
+      "type": "string",
+      "enum": [
+        "math",
+        "custom"
+      ],
+      "default": "math",
+      "description": "math = uses built-in syllabus by grade; custom = AI-generated topics"
+    },
+    "grade_level": {
+      "type": "string",
+      "enum": [
+        "6th",
+        "7th",
+        "8th",
+        "9th",
+        "10th",
+        "11th",
+        "12th",
+        "adaptive"
+      ],
+      "description": "Grade level for math subjects"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the subject"
+    },
+    "color": {
+      "type": "string",
+      "description": "Accent color key"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subtopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "Topics for custom subjects (AI-generated on creation)"
+    }
+  },
+  "required": [
+    "name",
+    "subject_type"
+  ]
+}

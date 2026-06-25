@@ -5,15 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, ArrowRight, Sparkles, Library } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
-
-// Section types matching the PDF template
-const SECTION_TYPES = ["Conceptual Foundation", "Key Formulas", "Worked Examples", "Common Mistakes", "Practice Problems"];
+import HelpChat from "@/components/help/HelpChat";
 
 export default function Foundation() {
   const [searchParams] = useSearchParams();
@@ -25,13 +23,30 @@ export default function Foundation() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
+  const [lessonMode, setLessonMode] = useState("ai"); // "ai" or "book"
+  const [selectedBook, setSelectedBook] = useState("");
 
   // Practice set state
   const [practiceAnswers, setPracticeAnswers] = useState({});
   const [practiceResults, setPracticeResults] = useState(null);
   const [evaluating, setEvaluating] = useState(false);
 
-  const selectedTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
+  const subjectId = searchParams.get("subject");
+  const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
+  const [customTopic, setCustomTopic] = useState(null);
+
+  useEffect(() => {
+    if (selectedTopicId && !syllabusTopic && subjectId) {
+      base44.entities.Subject.get(subjectId).then(sub => {
+        const t = (sub.topics || []).find(t => t.id === selectedTopicId);
+        if (t) setCustomTopic(t);
+      }).catch(() => {});
+    } else {
+      setCustomTopic(null);
+    }
+  }, [selectedTopicId, syllabusTopic, subjectId]);
+
+  const selectedTopic = syllabusTopic || customTopic;
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
 
   // Weak topics = mastery_score < 30 or needs_review
@@ -54,7 +69,7 @@ export default function Foundation() {
     setPracticeResults(null);
 
     const response = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a math teacher creating a structured study guide for a student who scored below 30% on the topic "${selectedTopic.name}".
+      prompt: `You are a teacher creating a structured study guide for a student who scored below 30% on the topic "${selectedTopic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Preferred learning style: ${profile?.preferred_explanation_style || "step-by-step"}
 Subtopics: ${selectedTopic.subtopics.join(", ")}
@@ -117,7 +132,7 @@ Return JSON:
         if (!answer.trim()) return { label: p.label, is_correct: false, question: p.question, correct_answer: p.correct_answer, student_answer: "" };
 
         const evalRes = await base44.integrations.Core.InvokeLLM({
-          prompt: `Math evaluation.
+          prompt: `Evaluation.
 Question: ${p.question}
 Correct Answer: ${p.correct_answer}
 Student Answer: ${answer}
@@ -135,11 +150,10 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
     const score = Math.round((correct / results.length) * 100);
     setPracticeResults(results);
 
-    // Update mastery
     const current = topicMastery || { questions_attempted: 0, questions_correct: 0, mastery_score: 0, consecutive_failures: 0 };
     const newAttempted = (current.questions_attempted || 0) + results.length;
     const newCorrect = (current.questions_correct || 0) + correct;
-    const newScore = Math.max(current.mastery_score || 0, score); // take best of current and this set
+    const newScore = Math.max(current.mastery_score || 0, score);
     const newStatus = newScore >= 50 ? "in_progress" : "needs_review";
 
     await upsertMastery.mutateAsync({
@@ -179,7 +193,27 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
         </div>
       </div>
 
-      {/* Topic selector — only show weak topics */}
+      {/* Lesson Mode Toggle */}
+      <div className="flex gap-2 p-1 bg-muted rounded-xl">
+        <button
+          onClick={() => setLessonMode("ai")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            lessonMode === "ai" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          <Sparkles className="w-4 h-4" /> AI Lesson
+        </button>
+        <button
+          onClick={() => setLessonMode("book")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            lessonMode === "book" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          <Library className="w-4 h-4" /> From a Book
+        </button>
+      </div>
+
+      {/* Topic selector */}
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
@@ -198,7 +232,20 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
               </SelectContent>
             </Select>
           </div>
-          {selectedTopicId && (
+          {lessonMode === "book" && (
+            <div className="flex-1">
+              <Select value={selectedBook} onValueChange={setSelectedBook}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a book" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Books will be added here later */}
+                  <SelectItem value="_placeholder" disabled>No books available yet</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {selectedTopicId && lessonMode === "ai" && (
             <Button onClick={loadContent} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {content ? "Reload" : "Load Lesson"}
@@ -206,7 +253,18 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           )}
         </div>
 
-        {weakTopics.length > 0 && (
+        {lessonMode === "book" && (
+          <div className="mt-3 p-4 rounded-xl bg-muted/50 text-center">
+            <Library className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              {selectedBook
+                ? "Loading lesson from this book..."
+                : "Select a book from the dropdown above. More books will be added soon."}
+            </p>
+          </div>
+        )}
+
+        {lessonMode === "ai" && weakTopics.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="text-xs text-muted-foreground">Topics needing work:</span>
             {weakTopics.map(t => (
@@ -229,7 +287,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       )}
 
       {/* Lesson Sections */}
-      {content && !loading && (
+      {content && !loading && lessonMode === "ai" && (
         <>
           <div className="space-y-3">
             {sections.map((sec) => (
@@ -334,7 +392,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       )}
 
       {/* Empty state */}
-      {!selectedTopicId && !loading && (
+      {!selectedTopicId && !loading && lessonMode === "ai" && (
         <Card className="p-10 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-display font-semibold text-foreground mb-2">Choose a topic to begin</h3>
@@ -345,6 +403,8 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           </p>
         </Card>
       )}
+
+      <HelpChat context={selectedTopic ? `Foundation lesson on ${selectedTopic.name}` : "Foundation lessons"} />
     </div>
   );
 }
