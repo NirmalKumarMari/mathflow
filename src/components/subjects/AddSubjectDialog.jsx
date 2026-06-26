@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Calculator, FlaskConical } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Plus, Loader2, Calculator, FlaskConical, ArrowRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import SubjectDiagnosticQuiz from "@/components/subjects/SubjectDiagnosticQuiz";
 
 const GRADES = ["6th", "7th", "8th", "9th", "10th", "11th", "12th", "adaptive"];
 const COLORS = ["violet", "emerald", "blue", "amber", "rose", "teal", "indigo", "orange"];
@@ -24,8 +26,18 @@ export default function AddSubjectDialog({ onCreate }) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("violet");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState("details");
 
-  const handleCreate = async () => {
+  const resetState = () => {
+    setName("");
+    setDescription("");
+    setType("math");
+    setGrade("7th");
+    setColor("violet");
+    setStep("details");
+  };
+
+  const handleCreate = async (quizResults = null) => {
     setLoading(true);
     let subjectData;
 
@@ -38,13 +50,16 @@ export default function AddSubjectDialog({ onCreate }) {
         color,
       };
     } else {
-      // Generate topics with AI
+      const quizContext = quizResults
+        ? `\n\nThe student just took a diagnostic quiz. Here are their results:\n${quizResults.map(r => `- ${r.area} (${r.difficulty}): ${r.is_correct ? "Correct" : "Incorrect"} — Q: ${r.question} | Their answer: ${r.student_answer || "No answer"} | Correct: ${r.correct_answer}`).join("\n")}\n\nBased on their performance, adjust the difficulty and focus of the topics. If they struggled with basics, include more foundational topics. If they did well, include more advanced topics.`
+        : "";
+
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `You are creating a study curriculum for the subject "${name}".
 Description: ${description || "General " + name}
-Grade level context: ${grade}
+Approximate level: ${grade}${quizContext}
 
-Generate 6-8 topics for this subject, each with 4-6 subtopics. These should cover the core areas of the subject at an appropriate difficulty level.
+Generate 6-8 topics for this subject, each with 4-6 subtopics. These should cover the core areas of the subject at an appropriate difficulty level based on the student's diagnostic results.
 
 Return JSON:
 {
@@ -82,16 +97,12 @@ Return JSON:
 
     await onCreate(subjectData);
     setOpen(false);
-    setName("");
-    setDescription("");
-    setType("math");
-    setGrade("7th");
-    setColor("violet");
+    resetState();
     setLoading(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetState(); }}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="w-4 h-4" /> Add Subject
@@ -126,60 +137,85 @@ Return JSON:
           </button>
         </div>
 
-        <div className="space-y-4">
-          {type === "math" ? (
-            <div>
-              <Label className="mb-1.5 block">Grade Level</Label>
-              <Select value={grade} onValueChange={setGrade}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? "Adaptive (all grades)" : `${g} Grade`}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+        {type === "custom" && step === "quiz" ? (
+          loading ? (
+            <Card className="p-8 text-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Generating your syllabus...</p>
+            </Card>
           ) : (
-            <>
-              <div>
-                <Label className="mb-1.5 block">Subject Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Physics, Chemistry, Biology" />
-              </div>
-              <div>
-                <Label className="mb-1.5 block">Description (optional)</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What should this subject cover?" className="h-20" />
-              </div>
-              <div>
-                <Label className="mb-1.5 block">Approximate Level</Label>
-                <Select value={grade} onValueChange={setGrade}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? "Adaptive" : `${g} Grade`}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
+            <SubjectDiagnosticQuiz
+              subjectName={name}
+              description={description}
+              gradeLevel={grade}
+              onBack={() => setStep("details")}
+              onComplete={(results) => handleCreate(results)}
+            />
+          )
+        ) : (
+          <>
+            <div className="space-y-4">
+              {type === "math" ? (
+                <div>
+                  <Label className="mb-1.5 block">Grade Level</Label>
+                  <Select value={grade} onValueChange={setGrade}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? "Adaptive (all grades)" : `${g} Grade`}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label className="mb-1.5 block">Subject Name</Label>
+                    <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Physics, Chemistry, Biology" />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Description (optional)</Label>
+                    <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What should this subject cover?" className="h-20" />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Approximate Level</Label>
+                    <Select value={grade} onValueChange={setGrade}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? "Adaptive" : `${g} Grade`}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
-          <div>
-            <Label className="mb-1.5 block">Color</Label>
-            <div className="flex gap-2 flex-wrap">
-              {COLORS.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-lg ${COLOR_SWATCHES[c]} border-2 transition-all ${color === c ? "border-primary scale-110" : "border-transparent"}`}
-                />
-              ))}
+              <div>
+                <Label className="mb-1.5 block">Color</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setColor(c)}
+                      className={`w-8 h-8 rounded-lg ${COLOR_SWATCHES[c]} border-2 transition-all ${color === c ? "border-primary scale-110" : "border-transparent"}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={loading || (type === "custom" && !name.trim())}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            {type === "custom" ? "Create & Generate Topics" : "Add Subject"}
-          </Button>
-        </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              {type === "custom" ? (
+                <Button onClick={() => setStep("quiz")} disabled={!name.trim()}>
+                  <ArrowRight className="w-4 h-4 mr-2" /> Continue to Quiz
+                </Button>
+              ) : (
+                <Button onClick={() => handleCreate()} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Add Subject
+                </Button>
+              )}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
