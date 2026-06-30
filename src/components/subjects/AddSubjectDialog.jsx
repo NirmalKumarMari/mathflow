@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, FileText, Youtube, Globe } from "lucide-react";
+import { Plus, Loader2, BookText } from "lucide-react";
+import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
 import { base44 } from "@/api/base44Client";
 
 const GRADES = ["6th", "7th"];
@@ -17,36 +18,6 @@ const COLOR_SWATCHES = {
   indigo: "bg-indigo-100", orange: "bg-orange-100",
 };
 
-function FileUploadButton({ label, icon: Icon, file, onFileChange, accept, id }) {
-  return (
-    <div>
-      <Label className="mb-1.5 block">{label}</Label>
-      <div className="flex items-center gap-2">
-        <input
-          type="file"
-          accept={accept}
-          onChange={e => onFileChange(e.target.files[0] || null)}
-          className="hidden"
-          id={id}
-        />
-        <label htmlFor={id} className="flex-1 cursor-pointer">
-          <div className={`flex items-center gap-2 p-3 rounded-lg border-2 border-dashed transition-all ${file ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-            <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm text-muted-foreground truncate">
-              {file ? file.name : `Upload ${label.toLowerCase()}`}
-            </span>
-          </div>
-        </label>
-        {file && (
-          <Button variant="ghost" size="icon" onClick={() => onFileChange(null)} className="flex-shrink-0">
-            <Plus className="w-4 h-4 rotate-45" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function AddSubjectDialog({ onCreate }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -54,10 +25,8 @@ export default function AddSubjectDialog({ onCreate }) {
   const [country, setCountry] = useState("United States");
   const [grade, setGrade] = useState("7th");
   const [color, setColor] = useState("violet");
+  const [textbookId, setTextbookId] = useState("none");
   const [loading, setLoading] = useState(false);
-  const [textbookFile, setTextbookFile] = useState(null);
-  const [syllabusFile, setSyllabusFile] = useState(null);
-  const [youtubeFile, setYoutubeFile] = useState(null);
 
   const resetState = () => {
     setName("");
@@ -65,9 +34,7 @@ export default function AddSubjectDialog({ onCreate }) {
     setCountry("United States");
     setGrade("7th");
     setColor("violet");
-    setTextbookFile(null);
-    setSyllabusFile(null);
-    setYoutubeFile(null);
+    setTextbookId("none");
   };
 
   const handleCreate = async () => {
@@ -75,33 +42,30 @@ export default function AddSubjectDialog({ onCreate }) {
     let textbook_url = null;
     let syllabus_url = null;
     let youtube_videos_url = null;
+    let textbook_title = null;
     let topics = [];
 
     try {
-      if (textbookFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: textbookFile });
-        textbook_url = file_url;
-      }
+      const textbook = AVAILABLE_TEXTBOOKS.find(t => t.id === textbookId);
+      if (textbook && textbook.id !== "none") {
+        textbook_url = textbook.textbook_url;
+        syllabus_url = textbook.syllabus_url;
+        youtube_videos_url = textbook.youtube_videos_url;
+        textbook_title = textbook.title;
 
-      if (syllabusFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: syllabusFile });
-        syllabus_url = file_url;
-        const res = await fetch(file_url);
-        const data = await res.json();
-        const syllabusTopics = data.syllabus?.topics || data.topics || [];
-        topics = syllabusTopics.map(t => ({
-          id: t.id || (t.name || "").toLowerCase().replace(/\s+/g, "_"),
-          name: t.name,
-          subtopics: t.subtopics || [],
-          description: t.description || "",
-          difficulty: t.difficulty || "beginner",
-          youtube_videos: t.youtube_videos || [],
-        }));
-      }
-
-      if (youtubeFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: youtubeFile });
-        youtube_videos_url = file_url;
+        if (syllabus_url) {
+          const res = await fetch(syllabus_url);
+          const data = await res.json();
+          const syllabusTopics = data.syllabus?.topics || data.topics || [];
+          topics = syllabusTopics.map(t => ({
+            id: t.id || (t.name || "").toLowerCase().replace(/\s+/g, "_"),
+            name: t.name,
+            subtopics: t.subtopics || [],
+            description: t.description || "",
+            difficulty: t.difficulty || "beginner",
+            youtube_videos: t.youtube_videos || [],
+          }));
+        }
       }
 
       if (topics.length === 0) {
@@ -148,7 +112,7 @@ Return JSON:
         country,
         topics,
         textbook_url,
-        textbook_title: textbookFile?.name || null,
+        textbook_title,
         syllabus_url,
         youtube_videos_url,
         placement_completed: false,
@@ -206,32 +170,25 @@ Return JSON:
             </div>
           </div>
 
-          <FileUploadButton
-            label="Textbook PDF"
-            icon={FileText}
-            file={textbookFile}
-            onFileChange={setTextbookFile}
-            accept=".pdf"
-            id="textbook-upload"
-          />
-
-          <FileUploadButton
-            label="Syllabus JSON"
-            icon={Globe}
-            file={syllabusFile}
-            onFileChange={setSyllabusFile}
-            accept=".json"
-            id="syllabus-upload"
-          />
-
-          <FileUploadButton
-            label="YouTube Videos JSON"
-            icon={Youtube}
-            file={youtubeFile}
-            onFileChange={setYoutubeFile}
-            accept=".json"
-            id="youtube-upload"
-          />
+          <div>
+            <Label className="mb-1.5 block">Textbook</Label>
+            <Select value={textbookId} onValueChange={setTextbookId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_TEXTBOOKS.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <span className="flex items-center gap-2">
+                      <BookText className="w-3.5 h-3.5 text-muted-foreground" />
+                      {t.title}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Textbooks are managed by your teacher. Select one to attach its content to this subject.
+            </p>
+          </div>
 
           <div>
             <Label className="mb-1.5 block">Color</Label>
