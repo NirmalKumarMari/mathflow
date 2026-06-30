@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Loader2, FileText, Youtube, Globe } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-const GRADES = ["6th", "7th", "8th", "9th", "10th", "11th", "12th", "adaptive"];
+const GRADES = ["6th", "7th"];
 const COUNTRIES = ["United States", "United Kingdom", "India", "Bangladesh", "Australia", "Canada", "Singapore", "Other"];
 const COLORS = ["violet", "emerald", "blue", "amber", "rose", "teal", "indigo", "orange"];
 const COLOR_SWATCHES = {

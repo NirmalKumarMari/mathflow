@@ -264,10 +264,8 @@ Create a personalized study guide. Return JSON:
                         <SelectValue placeholder="Select your grade" />
                       </SelectTrigger>
                       <SelectContent>
-                        {["6th", "7th", "8th", "9th", "10th", "11th", "12th", "adaptive"].map(g => (
-                          <SelectItem key={g} value={g}>
-                            {g === "adaptive" ? "Not sure / Adaptive" : `${g} Grade`}
-                          </SelectItem>
+                        {["6th", "7th"].map(g => (
+                          <SelectItem key={g} value={g}>{`${g} Grade`}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
