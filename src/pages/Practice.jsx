@@ -38,17 +38,24 @@ export default function Practice() {
   const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
   const subjectId = searchParams.get("subject");
   const [customTopic, setCustomTopic] = useState(null);
+  const [loadedSubject, setLoadedSubject] = useState(null);
 
   useEffect(() => {
-    if (selectedTopicId && !syllabusTopic && subjectId) {
-      base44.entities.Subject.get(subjectId).then(sub => {
-        const t = (sub.topics || []).find(t => t.id === selectedTopicId);
-        if (t) setCustomTopic(t);
-      }).catch(() => {});
+    if (subjectId) {
+      base44.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
+    } else {
+      setLoadedSubject(null);
+    }
+  }, [subjectId]);
+
+  useEffect(() => {
+    if (selectedTopicId && !syllabusTopic && loadedSubject) {
+      const t = (loadedSubject.topics || []).find(t => t.id === selectedTopicId);
+      if (t) setCustomTopic(t);
     } else {
       setCustomTopic(null);
     }
-  }, [selectedTopicId, syllabusTopic, subjectId]);
+  }, [selectedTopicId, syllabusTopic, loadedSubject]);
 
   const selectedTopic = syllabusTopic || customTopic;
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
@@ -79,9 +86,10 @@ export default function Practice() {
     const subtopic = selectedTopic.subtopics[subtopicIdx];
 
     const prompt = getProblemCreatorPrompt(selectedTopic.name, subtopic, difficulty, profile);
-
-    const response = await base44.integrations.Core.InvokeLLM({
-      prompt,
+    const llmParams = {
+      prompt: loadedSubject?.textbook_url
+        ? `Using the attached textbook as reference, create a practice question.\n\n${prompt}`
+        : prompt,
       response_json_schema: {
         type: "object",
         properties: {
@@ -93,7 +101,13 @@ export default function Practice() {
           subtopic: { type: "string" },
         }
       }
-    });
+    };
+
+    if (loadedSubject?.textbook_url) {
+      llmParams.file_urls = [loadedSubject.textbook_url];
+    }
+
+    const response = await base44.integrations.Core.InvokeLLM(llmParams);
 
     setCurrentQuestion(response);
     setLoading(false);
@@ -275,9 +289,11 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
     setLoadingSolution(false);
   };
 
-  const relevantTopics = profile ? SYLLABUS_TOPICS.filter(t =>
-    t.grades.includes(profile.grade_level) || profile.grade_level === "adaptive"
-  ) : SYLLABUS_TOPICS;
+  const relevantTopics = loadedSubject?.topics?.length
+    ? loadedSubject.topics
+    : profile ? SYLLABUS_TOPICS.filter(t =>
+        t.grades?.includes(profile.grade_level) || profile.grade_level === "adaptive"
+      ) : SYLLABUS_TOPICS;
 
   return (
     <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-6">

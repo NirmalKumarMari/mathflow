@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle, AlertTriangle, ArrowRight, ThumbsUp, Pencil, RotateCcw, Loader2, Sparkles, Calendar, Brain, Lightbulb, X } from "lucide-react";
+import { CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, ThumbsUp, Pencil, RotateCcw, Loader2, Sparkles, Calendar, Brain, Lightbulb, X, Youtube } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries, useStudyGuides } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
+import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
+import { useYouTubeVideos } from "@/hooks/useYouTubeVideos";
 
 export default function StudyGuidePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const subjectId = searchParams.get("subject");
   const { profile, isLoading: profileLoading } = useStudentProfile();
   const { masteries } = useTopicMasteries();
-  const { guides, latestGuide, isLoading: guidesLoading, updateGuide, createGuide } = useStudyGuides();
+  const { guides, latestGuide, isLoading: guidesLoading, updateGuide, createGuide } = useStudyGuides(subjectId);
   const [adjustText, setAdjustText] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,6 +29,29 @@ export default function StudyGuidePage() {
   const [weeklyReview, setWeeklyReview] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewNeeded, setReviewNeeded] = useState(false);
+
+  // Subject context for YouTube videos
+  const [subject, setSubject] = useState(null);
+  useEffect(() => {
+    if (subjectId) {
+      base44.entities.Subject.get(subjectId).then(setSubject).catch(() => {});
+    } else {
+      setSubject(null);
+    }
+  }, [subjectId]);
+  const { videos: youtubeVideos } = useYouTubeVideos(subject?.youtube_videos_url);
+
+  const guideTopicVideos = (latestGuide?.next_topics || [])
+    .map(topicName => {
+      const topic = subject?.topics?.find(t => t.name === topicName);
+      if (!topic) return null;
+      const fromTopic = topic.youtube_videos || [];
+      const fromJson = youtubeVideos.filter(v =>
+        v.topic_id === topic.id || v.topic_name?.toLowerCase() === topicName.toLowerCase()
+      ).map(v => v.youtube_id || v.video_id);
+      return { topicName, videos: [...fromTopic, ...fromJson].filter(Boolean) };
+    })
+    .filter(v => v && v.videos.length > 0);
 
   // Check if weekly review is needed
   useEffect(() => {
@@ -248,8 +275,14 @@ Return JSON:
         <Card className="p-10">
           <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-xl font-display font-bold text-foreground mb-2">No Study Guide Yet</h2>
-          <p className="text-muted-foreground mb-6">Complete the onboarding to generate your first personalized study guide.</p>
-          <Button onClick={() => navigate("/onboarding")}>Get Started</Button>
+          <p className="text-muted-foreground mb-6">
+            {subjectId
+              ? "Take the placement test to generate your personalized study guide for this subject."
+              : "Complete the onboarding to generate your first personalized study guide."}
+          </p>
+          {subjectId
+            ? <Button onClick={() => navigate(`/subject/${subjectId}/placement`)}>Take Placement Test</Button>
+            : <Button onClick={() => navigate("/onboarding")}>Get Started</Button>}
         </Card>
       </div>
     );
@@ -259,7 +292,12 @@ Return JSON:
     <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground mb-1">Your Study Guide</h1>
+          {subjectId && (
+            <Link to={`/subject/${subjectId}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
+              <ArrowLeft className="w-3 h-3" /> Back to {subject?.name || "Dashboard"}
+            </Link>
+          )}
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">{subject?.name ? `${subject.name} Study Guide` : "Your Study Guide"}</h1>
           <div className="flex items-center gap-2">
             <Badge variant="outline">Version {latestGuide.version || 1}</Badge>
             <Badge className={
@@ -396,6 +434,25 @@ Return JSON:
         </Card>
       )}
 
+      {/* YouTube Videos */}
+      {guideTopicVideos.length > 0 && (
+        <Card className="p-5">
+          <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Youtube className="w-5 h-5 text-primary" /> Video Lessons
+          </h3>
+          <div className="space-y-4">
+            {guideTopicVideos.map((vt, i) => (
+              <div key={i} className="space-y-2">
+                <p className="text-sm font-medium text-foreground">{vt.topicName}</p>
+                {vt.videos.map((vid, j) => (
+                  <YouTubeEmbed key={j} videoId={vid} title={`${vt.topicName} video ${j + 1}`} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Plan Details */}
       {latestGuide.plan_details && (
         <Card className="p-5">
@@ -449,7 +506,7 @@ Return JSON:
               <CheckCircle className="w-5 h-5" />
               <span className="font-medium">Study plan active</span>
             </div>
-            <Button size="sm" onClick={() => navigate("/practice")} className="gap-2">
+            <Button size="sm" onClick={() => navigate(subjectId ? `/practice?subject=${subjectId}` : "/practice")} className="gap-2">
               Start Practicing <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

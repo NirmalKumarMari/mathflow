@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, ArrowRight, FileText, ArrowLeft } from "lucide-react";
+import { BookOpen, ArrowRight, FileText, ArrowLeft, Play, Library } from "lucide-react";
 import { useStudentProfile, useTopicMasteries, useStudyGuides } from "@/hooks/useStudentProfile";
 import { useSubjects } from "@/hooks/useSubjects";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
@@ -15,7 +15,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, isLoading: profileLoading } = useStudentProfile();
   const { masteries, isLoading: masteryLoading } = useTopicMasteries();
-  const { latestGuide } = useStudyGuides();
+  const { latestGuide } = useStudyGuides(subjectId);
   const { subjects, isLoading: subjectsLoading } = useSubjects();
 
   const subject = subjects.find(s => s.id === subjectId);
@@ -53,10 +53,10 @@ export default function Dashboard() {
     );
   }
 
-  // Build topics list based on subject type
-  const topics = subject.subject_type === "math"
+  // Build topics list — use subject.topics if available (from uploaded syllabus or AI), otherwise built-in for math
+  const topics = subject.subject_type === "math" && !subject.topics?.length
     ? SYLLABUS_TOPICS.filter(t =>
-        t.grades.includes(subject.grade_level) || subject.grade_level === "adaptive"
+        t.grades?.includes(subject.grade_level) || subject.grade_level === "adaptive"
       )
     : (subject.topics || []);
 
@@ -82,17 +82,42 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-3">
           {latestGuide?.status === "pending" && (
-            <Link to="/study-guide">
+            <Link to={`/study-guide?subject=${subjectId}`}>
               <Button variant="outline" size="sm" className="gap-2">
                 <FileText className="w-4 h-4" /> Review Study Guide
               </Button>
             </Link>
           )}
+          <Link to={`/foundation?subject=${subjectId}`}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Library className="w-4 h-4" /> Foundation
+            </Button>
+          </Link>
           <Button size="sm" className="gap-2" onClick={() => topics[0] && goToPractice(topics[0])}>
             <BookOpen className="w-4 h-4" /> Start Practice
           </Button>
         </div>
       </div>
+
+      {/* Placement Banner */}
+      {subject.placement_completed === false && (
+        <Card className="p-5 border-primary/20 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Play className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-foreground">Take the Placement Test</p>
+                <p className="text-sm text-muted-foreground">Complete a quick test to get your personalized study guide for {subject.name}</p>
+              </div>
+            </div>
+            <Button size="sm" className="gap-2" onClick={() => navigate(`/subject/${subjectId}/placement`)}>
+              <Play className="w-4 h-4" /> Begin
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Stats */}
       <StatsOverview masteries={subjectMastery} profile={profile} />

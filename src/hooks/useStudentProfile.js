@@ -53,14 +53,16 @@ export function useTopicMasteries() {
   return { masteries, isLoading, upsertMastery };
 }
 
-export function useStudyGuides() {
+export function useStudyGuides(subjectId) {
   const queryClient = useQueryClient();
 
   const { data: guides = [], isLoading } = useQuery({
-    queryKey: ["studyGuides"],
+    queryKey: ["studyGuides", subjectId],
     queryFn: async () => {
       const user = await base44.auth.me();
-      return base44.entities.StudyGuide.filter({ created_by_id: user.id }, "-created_date");
+      const filter = { created_by_id: user.id };
+      if (subjectId) filter.subject_id = subjectId;
+      return base44.entities.StudyGuide.filter(filter, "-created_date");
     },
   });
 

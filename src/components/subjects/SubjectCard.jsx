@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Trash2, Layers } from "lucide-react";
+import { ArrowRight, Trash2, Layers, Play } from "lucide-react";
 import { useTopicMasteries } from "@/hooks/useStudentProfile";
 
 const COLOR_MAP = {
@@ -25,6 +25,8 @@ export default function SubjectCard({ subject, onDelete }) {
     ? "Syllabus topics"
     : (subject.topics?.length || 0) + " topics";
 
+  const needsPlacement = subject.placement_completed === false;
+
   const subjectMastery = masteries.filter(m =>
     (subject.topics || []).some(t => t.name === m.topic)
   );
@@ -34,12 +36,12 @@ export default function SubjectCard({ subject, onDelete }) {
 
   return (
     <Card
-      className={`p-5 cursor-pointer hover:shadow-lg transition-all group ${colors.bg} ${colors.border} border`}
-      onClick={() => navigate(`/subject/${subject.id}`)}
+      className={`p-5 cursor-pointer hover:shadow-lg transition-all group ${colors.bg} ${colors.border} border ${needsPlacement ? "ring-2 ring-primary/20" : ""}`}
+      onClick={() => navigate(needsPlacement ? `/subject/${subject.id}/placement` : `/subject/${subject.id}`)}
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`w-11 h-11 rounded-xl ${colors.icon} flex items-center justify-center`}>
-          <Layers className="w-5 h-5" />
+          {needsPlacement ? <Play className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
         </div>
         {onDelete && (
           <button
@@ -54,13 +56,19 @@ export default function SubjectCard({ subject, onDelete }) {
       <p className="text-xs text-muted-foreground mb-3">
         {subject.description || (subject.subject_type === "math" ? `${subject.grade_level} grade mathematics` : "Custom subject")}
       </p>
-      <div className="flex items-center justify-between">
-        <Badge variant="outline" className="text-xs">{topicCount}</Badge>
-        {avgMastery !== null && (
-          <span className="text-xs font-medium text-muted-foreground">{avgMastery}% avg</span>
-        )}
-        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
-      </div>
+      {needsPlacement ? (
+        <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium gap-2">
+          <Play className="w-4 h-4" /> Begin {subject.name}
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <Badge variant="outline" className="text-xs">{topicCount}</Badge>
+          {avgMastery !== null && (
+            <span className="text-xs font-medium text-muted-foreground">{avgMastery}% avg</span>
+          )}
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+        </div>
+      )}
     </Card>
   );
 }

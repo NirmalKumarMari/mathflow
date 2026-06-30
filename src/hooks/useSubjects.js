@@ -17,10 +17,15 @@ export function useSubjects() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subjects"] }),
   });
 
+  const updateSubject = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Subject.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subjects"] }),
+  });
+
   const deleteSubject = useMutation({
     mutationFn: (id) => base44.entities.Subject.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subjects"] }),
   });
 
-  return { subjects, isLoading, createSubject, deleteSubject };
+  return { subjects, isLoading, createSubject, updateSubject, deleteSubject };
 }

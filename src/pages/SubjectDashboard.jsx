@@ -30,6 +30,7 @@ export default function SubjectDashboard() {
         grade_level: profile.grade_level,
         description: `${profile.grade_level} grade mathematics curriculum`,
         color: "violet",
+        placement_completed: true,
       });
     }
   }, [profile, subjects, subjectsLoading, profileLoading]);

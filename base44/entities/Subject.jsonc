@@ -12,8 +12,8 @@
         "math",
         "custom"
       ],
-      "default": "math",
-      "description": "math = uses built-in syllabus by grade; custom = AI-generated topics"
+      "default": "custom",
+      "description": "math = uses built-in syllabus by grade; custom = AI-generated or uploaded syllabus topics"
     },
     "grade_level": {
       "type": "string",
@@ -27,7 +27,7 @@
         "12th",
         "adaptive"
       ],
-      "description": "Grade level for math subjects"
+      "description": "Grade level for the subject"
     },
     "description": {
       "type": "string",
@@ -36,6 +36,10 @@
     "color": {
       "type": "string",
       "description": "Accent color key"
+    },
+    "country": {
+      "type": "string",
+      "description": "Selected country/region for syllabus"
     },
     "topics": {
       "type": "array",
@@ -53,10 +57,43 @@
             "items": {
               "type": "string"
             }
+          },
+          "description": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "youtube_videos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
-      "description": "Topics for custom subjects (AI-generated on creation)"
+      "description": "Topics for the subject (from uploaded syllabus JSON or AI-generated)"
+    },
+    "textbook_url": {
+      "type": "string",
+      "description": "URL to uploaded textbook PDF"
+    },
+    "textbook_title": {
+      "type": "string",
+      "description": "Name of the uploaded textbook"
+    },
+    "syllabus_url": {
+      "type": "string",
+      "description": "URL to uploaded syllabus JSON file"
+    },
+    "youtube_videos_url": {
+      "type": "string",
+      "description": "URL to uploaded YouTube videos JSON file"
+    },
+    "placement_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the student has completed the placement test for this subject"
     }
   },
   "required": [

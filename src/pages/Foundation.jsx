@@ -5,13 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, ArrowRight, Sparkles, Library } from "lucide-react";
+import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, ArrowRight, Sparkles, Library, Youtube } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
+import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
+import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
 
 export default function Foundation() {
   const [searchParams] = useSearchParams();
@@ -34,20 +36,29 @@ export default function Foundation() {
   const subjectId = searchParams.get("subject");
   const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
   const [customTopic, setCustomTopic] = useState(null);
+  const [loadedSubject, setLoadedSubject] = useState(null);
 
   useEffect(() => {
-    if (selectedTopicId && !syllabusTopic && subjectId) {
-      base44.entities.Subject.get(subjectId).then(sub => {
-        const t = (sub.topics || []).find(t => t.id === selectedTopicId);
-        if (t) setCustomTopic(t);
-      }).catch(() => {});
+    if (subjectId) {
+      base44.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
+    } else {
+      setLoadedSubject(null);
+    }
+  }, [subjectId]);
+
+  useEffect(() => {
+    if (selectedTopicId && !syllabusTopic && loadedSubject) {
+      const t = (loadedSubject.topics || []).find(t => t.id === selectedTopicId);
+      if (t) setCustomTopic(t);
     } else {
       setCustomTopic(null);
     }
-  }, [selectedTopicId, syllabusTopic, subjectId]);
+  }, [selectedTopicId, syllabusTopic, loadedSubject]);
 
   const selectedTopic = syllabusTopic || customTopic;
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
+  const { videos: youtubeVideos } = useYouTubeVideos(loadedSubject?.youtube_videos_url);
+  const topicVideos = getVideosForTopic(youtubeVideos, selectedTopic);
 
   // Weak topics = mastery_score < 30 or needs_review
   const weakTopics = SYLLABUS_TOPICS.filter(t => {
@@ -68,8 +79,9 @@ export default function Foundation() {
     setPracticeAnswers({});
     setPracticeResults(null);
 
-    const response = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a teacher creating a structured study guide for a student who scored below 30% on the topic "${selectedTopic.name}".
+    const useTextbook = lessonMode === "book" && loadedSubject?.textbook_url;
+    const llmParams = {
+      prompt: `${useTextbook ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${selectedTopic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Preferred learning style: ${profile?.preferred_explanation_style || "step-by-step"}
 Subtopics: ${selectedTopic.subtopics.join(", ")}
@@ -115,8 +127,10 @@ Return JSON:
           }
         }
       }
-    });
+    };
 
+    if (useTextbook) llmParams.file_urls = [loadedSubject.textbook_url];
+    const response = await base44.integrations.Core.InvokeLLM(llmParams);
     setContent(response);
     setExpandedSection("conceptual_foundation");
     setLoading(false);
@@ -219,33 +233,25 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           <div className="flex-1">
             <Select value={selectedTopicId} onValueChange={v => { setSelectedTopicId(v); setContent(null); setPracticeResults(null); setPracticeAnswers({}); }}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a topic that needs work" />
+                <SelectValue placeholder="Choose a topic" />
               </SelectTrigger>
               <SelectContent>
-                {weakTopics.length > 0 ? weakTopics.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} — {masteries.find(m => m.topic === t.name)?.mastery_score || 0}%
-                  </SelectItem>
-                )) : SYLLABUS_TOPICS.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
+                {loadedSubject?.topics?.length
+                  ? loadedSubject.topics.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))
+                  : weakTopics.length > 0 ? weakTopics.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} — {masteries.find(m => m.topic === t.name)?.mastery_score || 0}%
+                    </SelectItem>
+                  )) : SYLLABUS_TOPICS.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           </div>
-          {lessonMode === "book" && (
-            <div className="flex-1">
-              <Select value={selectedBook} onValueChange={setSelectedBook}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a book" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Books will be added here later */}
-                  <SelectItem value="_placeholder" disabled>No books available yet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {selectedTopicId && lessonMode === "ai" && (
+          {selectedTopicId && (
             <Button onClick={loadContent} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {content ? "Reload" : "Load Lesson"}
@@ -253,13 +259,19 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           )}
         </div>
 
-        {lessonMode === "book" && (
+        {lessonMode === "book" && !loadedSubject?.textbook_url && (
           <div className="mt-3 p-4 rounded-xl bg-muted/50 text-center">
             <Library className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              {selectedBook
-                ? "Loading lesson from this book..."
-                : "Select a book from the dropdown above. More books will be added soon."}
+              No textbook uploaded for this subject. Upload a textbook PDF when creating a subject to use this mode.
+            </p>
+          </div>
+        )}
+        {lessonMode === "book" && loadedSubject?.textbook_url && !selectedTopicId && (
+          <div className="mt-3 p-4 rounded-xl bg-primary/5 text-center">
+            <Library className="w-8 h-8 text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Textbook loaded: {loadedSubject.textbook_title || "Textbook"}. Select a topic above to start reading.
             </p>
           </div>
         )}
@@ -287,7 +299,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       )}
 
       {/* Lesson Sections */}
-      {content && !loading && lessonMode === "ai" && (
+      {content && !loading && (
         <>
           <div className="space-y-3">
             {sections.map((sec) => (
@@ -391,8 +403,20 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
         </>
       )}
 
+      {/* YouTube Videos */}
+      {topicVideos.length > 0 && content && !loading && (
+        <div className="space-y-3">
+          <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+            <Youtube className="w-5 h-5 text-primary" /> Video Lessons
+          </h3>
+          {topicVideos.map((vid, i) => (
+            <YouTubeEmbed key={i} videoId={vid} title={`Video ${i + 1}`} />
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
-      {!selectedTopicId && !loading && lessonMode === "ai" && (
+      {!selectedTopicId && !loading && (lessonMode === "ai" || (lessonMode === "book" && loadedSubject?.textbook_url)) && (
         <Card className="p-10 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-display font-semibold text-foreground mb-2">Choose a topic to begin</h3>

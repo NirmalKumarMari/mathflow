@@ -16,6 +16,10 @@
       ],
       "default": "pending"
     },
+    "subject_id": {
+      "type": "string",
+      "description": "ID of the subject this study guide belongs to (null for global guides)"
+    },
     "strengths": {
       "type": "array",
       "items": {
