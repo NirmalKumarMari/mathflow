@@ -41,6 +41,11 @@
       "type": "string",
       "description": "Selected country/region for syllabus"
     },
+    "language": {
+      "type": "string",
+      "description": "Tutoring language for this subject (from textbook or country)",
+      "default": "English"
+    },
     "topics": {
       "type": "array",
       "items": {

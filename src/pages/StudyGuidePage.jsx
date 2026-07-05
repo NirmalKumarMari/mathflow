@@ -13,6 +13,7 @@ import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
 import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
 import { useYouTubeVideos } from "@/hooks/useYouTubeVideos";
+import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
 
 export default function StudyGuidePage() {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ Return JSON:
   "updated_gaps": ["revised gaps"],
   "updated_next_topics": ["revised next topics"],
   "updated_plan": "revised study plan"
-}`,
+}${getLanguageInstruction(getSubjectLanguage(subject, profile))}`,
         response_json_schema: {
           type: "object",
           properties: {

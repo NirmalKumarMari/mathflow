@@ -7,19 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, ArrowRight, ArrowLeft, Sparkles, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { GraduationCap, ArrowRight, ArrowLeft, Sparkles, CheckCircle, XCircle, Loader2, MapPin, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
+import { COUNTRIES, getSyllabiForCountry } from "@/lib/countries";
+import { languageFromCountry } from "@/lib/languageUtils";
 import { base44 } from "@/api/base44Client";
 
-const STEPS = ["Welcome", "About You", "Your Goals", "Getting Started", "Quick Quiz"];
+const STEPS = ["Welcome", "About You", "Country & Syllabus", "Your Goals", "Getting Started", "Quick Quiz"];
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     age: "",
     grade_level: "",
+    country: "",
+    syllabus: "",
+    language: "English",
     goals: "",
     use_case: "",
     preferred_explanation_style: "step-by-step",
@@ -163,6 +168,9 @@ Create a personalized study guide. Return JSON:
     await createProfile.mutateAsync({
       ...formData,
       age: parseInt(formData.age),
+      country: formData.country,
+      syllabus: formData.syllabus,
+      language: formData.language || "English",
       onboarding_complete: true,
       overall_mastery: results.length > 0 ? Math.round((correctTopics.length / results.length) * 100) : 0,
       current_topic: guideResponse.next_topics?.[0] || topics[0].name,
@@ -197,8 +205,9 @@ Create a personalized study guide. Return JSON:
 
   const canProceed = () => {
     if (step === 1) return formData.age && formData.grade_level;
-    if (step === 2) return formData.goals;
-    if (step === 3) return formData.use_case;
+    if (step === 2) return formData.country && formData.syllabus;
+    if (step === 3) return formData.goals;
+    if (step === 4) return formData.use_case;
     return true;
   };
 
@@ -289,6 +298,69 @@ Create a personalized study guide. Return JSON:
             {step === 2 && (
               <div className="space-y-6">
                 <div>
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">Country & Syllabus</h2>
+                  <p className="text-muted-foreground">Tell us where you study so we can tailor your lessons.</p>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Which country are you from?</Label>
+                    <Select
+                      value={formData.country}
+                      onValueChange={v => setFormData({
+                        ...formData,
+                        country: v,
+                        syllabus: "",
+                        language: languageFromCountry(v),
+                      })}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map(c => (
+                          <SelectItem key={c.code} value={c.name}>
+                            <span className="flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {c.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Which syllabus do you follow?</Label>
+                    <Select
+                      value={formData.syllabus}
+                      onValueChange={v => setFormData({ ...formData, syllabus: v })}
+                      disabled={!formData.country}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder={formData.country ? "Select your syllabus" : "Select a country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getSyllabiForCountry(formData.country).map(s => (
+                          <SelectItem key={s.id} value={s.name}>
+                            <span className="flex items-center gap-2">
+                              <BookOpen className="w-3.5 h-3.5 text-muted-foreground" /> {s.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formData.country && (
+                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{languageFromCountry(formData.country)}</span> will be used as your tutoring language.
+                      {languageFromCountry(formData.country) === "English" && " You'll be tutored in English."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-6">
+                <div>
                   <h2 className="text-2xl font-display font-bold text-foreground mb-2">Your Goals</h2>
                   <p className="text-muted-foreground">What would you like to achieve?</p>
                 </div>
@@ -305,7 +377,7 @@ Create a personalized study guide. Return JSON:
               </div>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-display font-bold text-foreground mb-2">Almost There!</h2>
@@ -324,7 +396,7 @@ Create a personalized study guide. Return JSON:
               </div>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="space-y-5">
                 <div>
                   <h2 className="text-2xl font-display font-bold text-foreground mb-1">Quick Diagnostic Quiz</h2>
@@ -412,26 +484,26 @@ Create a personalized study guide. Return JSON:
             </Button>
           ) : <div />}
 
-          {step < 3 && (
+          {step < 4 && (
             <Button onClick={() => setStep(step + 1)} disabled={!canProceed()}>
               Continue <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
 
-          {step === 3 && (
-            <Button onClick={() => setStep(4)} disabled={!canProceed()}>
+          {step === 4 && (
+            <Button onClick={() => setStep(5)} disabled={!canProceed()}>
               Continue <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
 
-          {step === 4 && !quizResults && quizQuestions.length > 0 && (
+          {step === 5 && !quizResults && quizQuestions.length > 0 && (
             <Button onClick={submitQuiz} disabled={!allQuizAnswered || quizLoading}>
               {quizLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Submit Quiz
             </Button>
           )}
 
-          {step === 4 && quizResults && (
+          {step === 5 && quizResults && (
             <Button onClick={handleFinish} disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2">

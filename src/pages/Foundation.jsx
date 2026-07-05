@@ -14,6 +14,7 @@ import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
 import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
 import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
+import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
 
 export default function Foundation() {
   const [searchParams] = useSearchParams();
@@ -80,6 +81,7 @@ export default function Foundation() {
     setPracticeResults(null);
 
     const useTextbook = lessonMode === "book" && loadedSubject?.textbook_url;
+    const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
     const llmParams = {
       prompt: `${useTextbook ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${selectedTopic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
@@ -106,7 +108,7 @@ Return JSON:
     { "label": "C", "question": "...", "correct_answer": "..." },
     { "label": "D", "question": "...", "correct_answer": "..." }
   ]
-}`,
+}${getLanguageInstruction(tutoringLanguage)}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -428,7 +430,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
         </Card>
       )}
 
-      <HelpChat context={selectedTopic ? `Foundation lesson on ${selectedTopic.name}` : "Foundation lessons"} />
+      <HelpChat context={selectedTopic ? `Foundation lesson on ${selectedTopic.name}` : "Foundation lessons"} language={getSubjectLanguage(loadedSubject, profile)} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Loader2, BookText } from "lucide-react";
 import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
 import { base44 } from "@/api/base44Client";
+import { languageFromCountry } from "@/lib/languageUtils";
 
 const GRADES = ["6th", "7th"];
 const COUNTRIES = ["United States", "United Kingdom", "India", "Bangladesh", "Australia", "Canada", "Singapore", "Other"];
@@ -47,11 +48,13 @@ export default function AddSubjectDialog({ onCreate }) {
 
     try {
       const textbook = AVAILABLE_TEXTBOOKS.find(t => t.id === textbookId);
+      let language = languageFromCountry(country);
       if (textbook && textbook.id !== "none") {
         textbook_url = textbook.textbook_url;
         syllabus_url = textbook.syllabus_url;
         youtube_videos_url = textbook.youtube_videos_url;
         textbook_title = textbook.title;
+        if (textbook.language) language = textbook.language;
 
         if (syllabus_url) {
           const res = await fetch(syllabus_url);
@@ -115,6 +118,7 @@ Return JSON:
         textbook_title,
         syllabus_url,
         youtube_videos_url,
+        language,
         placement_completed: false,
       });
 

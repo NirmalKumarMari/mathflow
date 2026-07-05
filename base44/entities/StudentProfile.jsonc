@@ -20,6 +20,19 @@
       ],
       "description": "Student's grade level"
     },
+    "country": {
+      "type": "string",
+      "description": "Student's country/region"
+    },
+    "syllabus": {
+      "type": "string",
+      "description": "Syllabus/curriculum the student follows (e.g. Common Core, NCTB)"
+    },
+    "language": {
+      "type": "string",
+      "description": "Tutoring language derived from country (e.g. English, Bengali, Arabic)",
+      "default": "English"
+    },
     "goals": {
       "type": "string",
       "description": "What the student wants to achieve"

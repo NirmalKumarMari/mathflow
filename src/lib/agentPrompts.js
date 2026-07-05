@@ -65,7 +65,10 @@ When evaluating an answer, respond with JSON:
 }`;
 }
 
-export function getProblemCreatorPrompt(topic, subtopic, difficulty, studentProfile) {
+export function getProblemCreatorPrompt(topic, subtopic, difficulty, studentProfile, language) {
+  const langInstruction = language && language !== "English"
+    ? `\n\nIMPORTANT: Write the question, answer, solution steps, and hints entirely in ${language}.`
+    : "";
   return `You are the Problem Creator Agent. Generate a high-quality math practice problem.
 
 CONTEXT:
@@ -88,5 +91,5 @@ Return ONLY valid JSON:
   "hints": "helpful hints if student is stuck",
   "difficulty": "${difficulty}",
   "subtopic": "the subtopic covered"
-}`;
+}${langInstruction}`;
 }

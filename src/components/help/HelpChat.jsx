@@ -5,8 +5,9 @@ import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import StyledMarkdown from "@/components/ui/markdown";
+import { getLanguageInstruction } from "@/lib/languageUtils";
 
-export default function HelpChat({ context }) {
+export default function HelpChat({ context, language }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -31,7 +32,7 @@ Context: ${context || "General study help"}
 
 The student asks: "${userMsg.content}"
 
-Give a clear, concise, helpful answer. If they're stuck on a specific problem, guide them toward the answer without just giving it away (unless they explicitly ask for the answer). Use markdown for formatting.`,
+Give a clear, concise, helpful answer. If they're stuck on a specific problem, guide them toward the answer without just giving it away (unless they explicitly ask for the answer). Use markdown for formatting.${getLanguageInstruction(language)}`,
       });
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
     } catch {

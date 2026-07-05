@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import { getProblemCreatorPrompt } from "@/lib/agentPrompts";
+import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
 import ReactMarkdown from "react-markdown";
 import HelpChat from "@/components/help/HelpChat";
 
@@ -85,7 +86,8 @@ export default function Practice() {
     const subtopicIdx = Math.floor(Math.random() * selectedTopic.subtopics.length);
     const subtopic = selectedTopic.subtopics[subtopicIdx];
 
-    const prompt = getProblemCreatorPrompt(selectedTopic.name, subtopic, difficulty, profile);
+    const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
+    const prompt = getProblemCreatorPrompt(selectedTopic.name, subtopic, difficulty, profile, tutoringLanguage);
     const llmParams = {
       prompt: loadedSubject?.textbook_url
         ? `Using the attached textbook as reference, create a practice question.\n\n${prompt}`
@@ -132,7 +134,7 @@ Return JSON:
   "is_correct": true/false,
   "explanation": "detailed explanation of why correct or incorrect",
   "encouragement": "encouraging message for the student"
-}`,
+}${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -213,7 +215,7 @@ Provide:
 3. A common mistake to watch out for
 4. An encouraging tip
 
-Format with markdown.`,
+Format with markdown.${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
     });
     setResources(res);
   };
@@ -231,7 +233,7 @@ Question: ${currentQuestion.question}
 Correct Answer: ${currentQuestion.correct_answer}
 Student grade: ${profile?.grade_level || "adaptive"}
 
-Walk through every step clearly. Explain WHY each step is done, not just what to do. Use numbered steps.`,
+Walk through every step clearly. Explain WHY each step is done, not just what to do. Use numbered steps.${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
     });
     setFullSolution(solution);
 
@@ -516,7 +518,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
         </Card>
       )}
 
-      <HelpChat context={selectedTopic ? `Practicing ${selectedTopic.name}. Current question: ${currentQuestion?.question || "None yet"}` : "Math practice"} />
+      <HelpChat context={selectedTopic ? `Practicing ${selectedTopic.name}. Current question: ${currentQuestion?.question || "None yet"}` : "Math practice"} language={getSubjectLanguage(loadedSubject, profile)} />
     </div>
   );
 }

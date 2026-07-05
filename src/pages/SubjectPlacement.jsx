@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudentProfile, useStudyGuides } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
+import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
 
 export default function SubjectPlacement() {
   const { subjectId } = useParams();
@@ -20,6 +21,7 @@ export default function SubjectPlacement() {
   const { createGuide } = useStudyGuides(subjectId);
 
   const subject = subjects.find(s => s.id === subjectId);
+  const tutoringLanguage = getSubjectLanguage(subject, profile);
 
   const [phase, setPhase] = useState("intro");
   const [questions, setQuestions] = useState([]);
@@ -95,6 +97,8 @@ Return JSON:
       }
     };
 
+    llmParams.prompt += getLanguageInstruction(tutoringLanguage);
+
     if (subject.textbook_url) {
       llmParams.file_urls = [subject.textbook_url];
       llmParams.prompt = `Use the attached textbook as the primary reference for creating this placement test.\n\n${llmParams.prompt}`;
@@ -160,7 +164,7 @@ Return JSON:
   "gaps": ["topic3", "topic4"],
   "next_topics": ["topic5", "topic6", "topic7"],
   "plan_details": "detailed study plan text"
-}`,
+}${getLanguageInstruction(tutoringLanguage)}`,
       response_json_schema: {
         type: "object",
         properties: {

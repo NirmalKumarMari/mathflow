@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Trash2, Layers, Play } from "lucide-react";
+import { ArrowRight, Trash2, Layers, Play, GraduationCap } from "lucide-react";
 import { useTopicMasteries } from "@/hooks/useStudentProfile";
 
 const COLOR_MAP = {
@@ -57,12 +57,26 @@ export default function SubjectCard({ subject, onDelete }) {
         {subject.description || (subject.subject_type === "math" ? `${subject.grade_level} grade mathematics` : "Custom subject")}
       </p>
       {needsPlacement ? (
-        <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium gap-2">
-          <Play className="w-4 h-4" /> Begin {subject.name}
+        <div className="space-y-2">
+          {subject.grade_level && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <GraduationCap className="w-3 h-3" /> {subject.grade_level} Grade
+            </div>
+          )}
+          <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium gap-2">
+            <Play className="w-4 h-4" /> Begin {subject.name}
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-between">
-          <Badge variant="outline" className="text-xs">{topicCount}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">{topicCount}</Badge>
+            {subject.grade_level && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <GraduationCap className="w-3 h-3" /> {subject.grade_level}
+              </Badge>
+            )}
+          </div>
           {avgMastery !== null && (
             <span className="text-xs font-medium text-muted-foreground">{avgMastery}% avg</span>
           )}
