@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Trash2, Layers, Play, GraduationCap, TrendingUp } from "lucide-react";
 import { useTopicMasteries } from "@/hooks/useStudentProfile";
+import { useI18n } from "@/hooks/useI18n";
 
 const COLOR_MAP = {
   violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "bg-violet-100 text-violet-600", badge: "bg-violet-100 text-violet-700" },
@@ -19,11 +20,12 @@ const COLOR_MAP = {
 export default function SubjectCard({ subject, onDelete }) {
   const navigate = useNavigate();
   const { masteries } = useTopicMasteries();
+  const { t } = useI18n();
   const colors = COLOR_MAP[subject.color] || COLOR_MAP.violet;
 
   const topicCount = subject.subject_type === "math"
-    ? "Syllabus topics"
-    : (subject.topics?.length || 0) + " topics";
+    ? t("card.syllabusTopics")
+    : (subject.topics?.length || 0) + " " + t("card.topics");
 
   const needsPlacement = subject.placement_completed === false;
 
@@ -60,11 +62,11 @@ export default function SubjectCard({ subject, onDelete }) {
         <div className="space-y-2">
           {subject.grade_level && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <GraduationCap className="w-3 h-3" /> {subject.grade_level} Grade
-            </div>
-          )}
-          <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium gap-2">
-            <Play className="w-4 h-4" /> Begin {subject.name}
+              <GraduationCap className="w-3 h-3" /> {subject.grade_level} {t("card.grade")}
+              </div>
+              )}
+              <div className="flex items-center justify-center py-2 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium gap-2">
+              <Play className="w-4 h-4" /> {t("card.begin")} {subject.name}
           </div>
         </div>
       ) : (
@@ -82,7 +84,7 @@ export default function SubjectCard({ subject, onDelete }) {
               <TrendingUp className="w-3 h-3" /> {avgMastery}%
             </Badge>
           ) : (
-            <span className="text-xs text-muted-foreground">No data</span>
+            <span className="text-xs text-muted-foreground">{t("card.noData")}</span>
           )}
           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
         </div>

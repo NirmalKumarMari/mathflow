@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { GraduationCap, Sparkles, BookOpen, ArrowRight, TrendingUp } from "lucide-react";
 import { useStudentProfile, useStudyGuides } from "@/hooks/useStudentProfile";
 import { useSubjects } from "@/hooks/useSubjects";
+import { useI18n } from "@/hooks/useI18n";
 import SubjectCard from "@/components/subjects/SubjectCard";
 import AddSubjectDialog from "@/components/subjects/AddSubjectDialog";
 
@@ -14,6 +15,7 @@ export default function SubjectDashboard() {
   const { profile, isLoading: profileLoading } = useStudentProfile();
   const { latestGuide } = useStudyGuides();
   const { subjects, isLoading: subjectsLoading, createSubject, deleteSubject } = useSubjects();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!profileLoading && !profile) {
@@ -49,9 +51,9 @@ export default function SubjectDashboard() {
 
   const greeting = (() => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t("greeting.morning");
+    if (hour < 18) return t("greeting.afternoon");
+    return t("greeting.evening");
   })();
 
   const totalMastery = profile?.overall_mastery || 0;
@@ -63,9 +65,9 @@ export default function SubjectDashboard() {
         <div className="p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs text-background/60 uppercase tracking-wider font-medium">{greeting}</p>
-            <h1 className="text-2xl md:text-3xl font-display font-bold mt-1">Your Subjects</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold mt-1">{t("dashboard.yourSubjects")}</h1>
             <p className="text-sm text-background/70 mt-1">
-              {profile?.country ? `${profile.country} · ` : ""}{profile?.grade_level} Grade
+              {profile?.country ? `${profile.country} · ` : ""}{profile?.grade_level} {t("dashboard.grade")}
               {profile?.language && profile.language !== "English" ? ` · ${profile.language}` : ""}
             </p>
           </div>
@@ -74,7 +76,7 @@ export default function SubjectDashboard() {
               <TrendingUp className="w-5 h-5 text-background/80" />
               <div>
                 <p className="text-2xl font-display font-bold">{totalMastery}%</p>
-                <p className="text-[10px] text-background/60 uppercase tracking-wider">Overall Mastery</p>
+                <p className="text-[10px] text-background/60 uppercase tracking-wider">{t("dashboard.overallMastery")}</p>
               </div>
             </div>
           )}
@@ -83,7 +85,7 @@ export default function SubjectDashboard() {
 
       {/* Subjects Grid */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-display font-semibold text-foreground">Subjects</h2>
+        <h2 className="text-lg font-display font-semibold text-foreground">{t("dashboard.subjects")}</h2>
         <AddSubjectDialog onCreate={async (data) => { await createSubject.mutateAsync(data); }} />
       </div>
 
@@ -96,8 +98,8 @@ export default function SubjectDashboard() {
       ) : (
         <Card className="p-12 text-center rounded-2xl">
           <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-display font-semibold text-foreground mb-2">No subjects yet</h3>
-          <p className="text-sm text-muted-foreground mb-6">Add your first subject to get started.</p>
+          <h3 className="font-display font-semibold text-foreground mb-2">{t("dashboard.noSubjects")}</h3>
+          <p className="text-sm text-muted-foreground mb-6">{t("dashboard.addFirstSubject")}</p>
           <AddSubjectDialog onCreate={async (data) => { await createSubject.mutateAsync(data); }} />
         </Card>
       )}
@@ -110,8 +112,8 @@ export default function SubjectDashboard() {
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="font-display font-semibold text-foreground">Study Guide</p>
-              <p className="text-xs text-muted-foreground">View your personalized plan</p>
+              <p className="font-display font-semibold text-foreground">{t("dashboard.studyGuide")}</p>
+              <p className="text-xs text-muted-foreground">{t("dashboard.viewPlan")}</p>
             </div>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground" />

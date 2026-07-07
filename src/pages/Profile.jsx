@@ -9,11 +9,13 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useSubjects } from "@/hooks/useSubjects";
 import { COUNTRIES } from "@/lib/countries";
 import { LogOut, MapPin, GraduationCap, Globe, Languages, Calendar, BookOpen, ChevronRight, User } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { profile, isLoading } = useStudentProfile();
   const { subjects } = useSubjects();
+  const { t } = useI18n();
 
   if (isLoading) {
     return (
@@ -36,11 +38,11 @@ export default function Profile() {
   const countryInfo = COUNTRIES.find(c => c.name === profile.country);
 
   const infoItems = [
-    { icon: Calendar, label: "Age", value: profile.age ? `${profile.age} years old` : "—" },
-    { icon: GraduationCap, label: "Grade Level", value: profile.grade_level ? `${profile.grade_level} Grade` : "—" },
-    { icon: MapPin, label: "Country", value: profile.country || "—" },
-    { icon: BookOpen, label: "Syllabus", value: profile.syllabus || "—" },
-    { icon: Languages, label: "Tutoring Language", value: profile.language || "English" },
+    { icon: Calendar, label: t("profile.age"), value: profile.age ? `${profile.age} ${t("profile.yearsOld")}` : "—" },
+    { icon: GraduationCap, label: t("profile.gradeLevel"), value: profile.grade_level ? `${profile.grade_level} ${t("card.grade")}` : "—" },
+    { icon: MapPin, label: t("profile.country"), value: profile.country || "—" },
+    { icon: BookOpen, label: t("profile.syllabus"), value: profile.syllabus || "—" },
+    { icon: Languages, label: t("profile.tutoringLanguage"), value: profile.language || "English" },
   ];
 
   return (
@@ -53,13 +55,13 @@ export default function Profile() {
               <User className="w-8 h-8 text-background" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-background/60 uppercase tracking-wider font-medium">Student Profile</p>
-              <h1 className="text-2xl font-display font-bold truncate">My Account</h1>
+              <p className="text-xs text-background/60 uppercase tracking-wider font-medium">{t("profile.studentProfile")}</p>
+              <h1 className="text-2xl font-display font-bold truncate">{t("profile.myAccount")}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-4 text-sm text-background/70">
             <Globe className="w-4 h-4" />
-            <span>{profile.country || "Location not set"}</span>
+            <span>{profile.country || t("profile.locationNotSet")}</span>
             {profile.language && profile.language !== "English" && (
               <>
                 <span className="text-background/30">·</span>
@@ -73,7 +75,7 @@ export default function Profile() {
 
       {/* Basic Info */}
       <Card className="p-6 rounded-2xl">
-        <h2 className="font-display font-semibold text-foreground mb-4">Basic Information</h2>
+        <h2 className="font-display font-semibold text-foreground mb-4">{t("profile.basicInfo")}</h2>
         <div className="space-y-1">
           {infoItems.map((item) => (
             <div key={item.label} className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -92,7 +94,7 @@ export default function Profile() {
       {/* Subjects */}
       <Card className="p-6 rounded-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold text-foreground">My Subjects</h2>
+          <h2 className="font-display font-semibold text-foreground">{t("profile.mySubjects")}</h2>
           <Badge variant="secondary">{subjects.length}</Badge>
         </div>
         {subjects.length > 0 ? (
@@ -110,7 +112,7 @@ export default function Profile() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{subject.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {subject.grade_level ? `${subject.grade_level} Grade` : "Custom"}
+                      {subject.grade_level ? `${subject.grade_level} ${t("card.grade")}` : t("profile.custom")}
                       {subject.language && subject.language !== "English" ? ` · ${subject.language}` : ""}
                     </p>
                   </div>
@@ -120,14 +122,14 @@ export default function Profile() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No subjects yet.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">{t("profile.noSubjects")}</p>
         )}
       </Card>
 
       {/* Goals */}
       {profile.goals && (
         <Card className="p-6 rounded-2xl">
-          <h2 className="font-display font-semibold text-foreground mb-2">My Goals</h2>
+          <h2 className="font-display font-semibold text-foreground mb-2">{t("profile.myGoals")}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">{profile.goals}</p>
         </Card>
       )}
@@ -138,7 +140,7 @@ export default function Profile() {
         className="w-full gap-2 rounded-xl h-12"
         onClick={handleLogout}
       >
-        <LogOut className="w-4 h-4" /> Sign Out
+        <LogOut className="w-4 h-4" /> {t("profile.signOut")}
       </Button>
     </div>
   );

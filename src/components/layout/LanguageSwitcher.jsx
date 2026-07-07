@@ -8,17 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-
-const LANGUAGES = [
-  "English",
-  "Bengali",
-  "Hindi",
-  "Arabic",
-  "French",
-  "Spanish",
-  "German",
-  "Urdu",
-];
+import { SUPPORTED_LANGUAGES } from "@/lib/translations";
 
 export default function LanguageSwitcher() {
   const { profile, updateProfile } = useStudentProfile();
@@ -40,7 +30,7 @@ export default function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[140px]">
-        {LANGUAGES.map((lang) => (
+        {SUPPORTED_LANGUAGES.map((lang) => (
           <DropdownMenuItem
             key={lang}
             onClick={() => handleChange(lang)}

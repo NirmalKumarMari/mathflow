@@ -12,6 +12,7 @@ import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile"
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import { getProblemCreatorPrompt } from "@/lib/agentPrompts";
 import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
+import { useI18n } from "@/hooks/useI18n";
 import ReactMarkdown from "react-markdown";
 import HelpChat from "@/components/help/HelpChat";
 
@@ -20,6 +21,7 @@ export default function Practice() {
   const navigate = useNavigate();
   const { profile, updateProfile } = useStudentProfile();
   const { masteries, upsertMastery } = useTopicMasteries();
+  const { t } = useI18n();
   
   const [selectedTopicId, setSelectedTopicId] = useState(searchParams.get("topic") || "");
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -300,9 +302,9 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
   return (
     <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground mb-1">Practice Session</h1>
+        <h1 className="text-2xl font-display font-bold text-foreground mb-1">{t("practice.session")}</h1>
         <p className="text-sm text-muted-foreground">
-          {sessionQuestions > 0 && `${sessionCorrect}/${sessionQuestions} correct this session`}
+          {sessionQuestions > 0 && `${sessionCorrect}/${sessionQuestions} ${t("practice.correctSession")}`}
         </p>
       </div>
 
@@ -312,7 +314,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
           <div className="flex-1">
             <Select value={selectedTopicId} onValueChange={v => { setSelectedTopicId(v); setCurrentQuestion(null); setFeedback(null); }}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a topic to practice" />
+                <SelectValue placeholder={t("practice.chooseTopic")} />
               </SelectTrigger>
               <SelectContent>
                 {relevantTopics.map(t => (
@@ -329,7 +331,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
             ) : currentQuestion ? (
               <RotateCcw className="w-4 h-4 mr-2" />
             ) : null}
-            {currentQuestion ? "New Question" : "Start"}
+            {currentQuestion ? t("practice.newQuestion") : t("practice.start")}
           </Button>
         </div>
       </Card>
@@ -380,7 +382,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                         disabled={loadingSolution}
                       >
                         {loadingSolution ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
-                        Show Full Solution
+                        {t("practice.showFullSolution")}
                       </Button>
                     )}
                   </div>
@@ -395,12 +397,12 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                   className="p-4 rounded-xl bg-violet-50 border border-violet-200 space-y-2"
                 >
                   <p className="text-xs font-semibold text-violet-700 flex items-center gap-1">
-                    <Eye className="w-3 h-3" /> Full Solution Revealed
-                    <span className="ml-1 text-violet-500 font-normal">— this topic has been flagged for extra practice</span>
+                    <Eye className="w-3 h-3" /> {t("practice.solutionRevealed")}
+                    <span className="ml-1 text-violet-500 font-normal">— {t("practice.flaggedExtra")}</span>
                   </p>
                   {loadingSolution ? (
                     <div className="flex items-center gap-2 text-sm text-violet-700">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Generating solution...
+                      <Loader2 className="w-4 h-4 animate-spin" /> {t("practice.generatingSolution")}
                     </div>
                   ) : (
                     <div className="prose prose-sm max-w-none text-foreground">
@@ -409,13 +411,13 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                   )}
                   {!loadingSolution && (
                     <Button size="sm" onClick={generateQuestion} className="mt-2 gap-2">
-                      Next Question <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  )}
-                </motion.div>
-              )}
+                      {t("practice.nextQuestion")} <ArrowRight className="w-4 h-4" />
+                      </Button>
+                      )}
+                      </motion.div>
+                      )}
 
-              {/* Answer Input */}
+                      {/* Answer Input */}
               {!feedback && !showFullSolution && (
                 <div className="flex gap-2">
                   <Input
@@ -423,7 +425,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && submitAnswer()}
-                    placeholder="Type your answer..."
+                    placeholder={t("practice.typeAnswer")}
                     className="flex-1"
                     disabled={loading}
                   />
@@ -458,7 +460,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       )}
                       <div>
                         <p className={`font-medium ${feedback.is_correct ? "text-emerald-800" : "text-rose-800"}`}>
-                          {feedback.is_correct ? "Correct!" : "Not quite right"}
+                          {feedback.is_correct ? t("practice.correct") : t("practice.notQuiteRight")}
                         </p>
                         <p className="text-sm mt-1 text-foreground/80">{feedback.explanation}</p>
                         {feedback.encouragement && (
@@ -466,7 +468,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                         )}
                         {!feedback.is_correct && (
                           <p className="text-sm mt-2 text-muted-foreground">
-                            The correct answer is: <span className="font-medium text-foreground">{currentQuestion.correct_answer}</span>
+                            {t("practice.correctAnswerIs")} <span className="font-medium text-foreground">{currentQuestion.correct_answer}</span>
                           </p>
                         )}
                       </div>
@@ -482,11 +484,11 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                   <div className="flex gap-2">
                     {!showResources && (
                       <Button variant="outline" size="sm" onClick={loadResources} className="gap-2">
-                        <BookOpen className="w-4 h-4" /> Show me more
+                        <BookOpen className="w-4 h-4" /> {t("practice.showMore")}
                       </Button>
                     )}
                     <Button size="sm" onClick={generateQuestion} className="gap-2">
-                      Next Question <ArrowRight className="w-4 h-4" />
+                      {t("practice.nextQuestion")} <ArrowRight className="w-4 h-4" />
                     </Button>
                   </div>
 
@@ -511,9 +513,9 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
       {!currentQuestion && !loading && selectedTopicId && (
         <Card className="p-10 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-display font-semibold text-foreground mb-2">Ready to practice?</h3>
+          <h3 className="font-display font-semibold text-foreground mb-2">{t("practice.readyToPractice")}</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Click "Start" above to generate your first question on {selectedTopic?.name}.
+            {t("practice.clickStart")} {selectedTopic?.name}.
           </p>
         </Card>
       )}

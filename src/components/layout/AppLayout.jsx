@@ -5,16 +5,18 @@ import {
   GraduationCap, User,
 } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
-
-const navItems = [
-  { path: "/", icon: LayoutDashboard, label: "Home" },
-  { path: "/practice", icon: BookOpen, label: "Practice" },
-  { path: "/foundation", icon: BookOpen, label: "Learn" },
-  { path: "/study-guide", icon: FileText, label: "Plan" },
-];
+import { useI18n } from "@/hooks/useI18n";
 
 export default function AppLayout() {
   const location = useLocation();
+  const { t } = useI18n();
+
+  const navItems = [
+    { path: "/", icon: LayoutDashboard, label: t("nav.home") },
+    { path: "/practice", icon: BookOpen, label: t("nav.practice") },
+    { path: "/foundation", icon: BookOpen, label: t("nav.learn") },
+    { path: "/study-guide", icon: FileText, label: t("nav.plan") },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
