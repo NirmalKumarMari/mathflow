@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Trash2, Layers, Play, GraduationCap } from "lucide-react";
+import { ArrowRight, Trash2, Layers, Play, GraduationCap, TrendingUp } from "lucide-react";
 import { useTopicMasteries } from "@/hooks/useStudentProfile";
 
 const COLOR_MAP = {
@@ -77,8 +77,12 @@ export default function SubjectCard({ subject, onDelete }) {
               </Badge>
             )}
           </div>
-          {avgMastery !== null && (
-            <span className="text-xs font-medium text-muted-foreground">{avgMastery}% avg</span>
+          {avgMastery !== null ? (
+            <Badge variant="secondary" className="text-xs gap-1">
+              <TrendingUp className="w-3 h-3" /> {avgMastery}%
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">No data</span>
           )}
           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
         </div>

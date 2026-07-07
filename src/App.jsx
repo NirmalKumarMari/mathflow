@@ -16,7 +16,6 @@ import Dashboard from '@/pages/Dashboard';
 import SubjectDashboard from '@/pages/SubjectDashboard';
 import Onboarding from '@/pages/Onboarding';
 import Practice from '@/pages/Practice';
-import Progress from '@/pages/Progress';
 import StudyGuidePage from '@/pages/StudyGuidePage';
 import SubjectPlacement from '@/pages/SubjectPlacement';
 import Profile from '@/pages/Profile';
@@ -59,7 +58,6 @@ const AuthenticatedApp = () => {
           <Route path="/subject/:subjectId" element={<Dashboard />} />
           <Route path="/subject/:subjectId/placement" element={<SubjectPlacement />} />
           <Route path="/practice" element={<Practice />} />
-          <Route path="/progress" element={<Progress />} />
           <Route path="/study-guide" element={<StudyGuidePage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/foundation" element={<Foundation />} />

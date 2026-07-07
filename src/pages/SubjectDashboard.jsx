@@ -103,7 +103,7 @@ export default function SubjectDashboard() {
       )}
 
       {/* Quick links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+      <div className="pt-2">
         <Card className="p-5 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow rounded-2xl" onClick={() => navigate("/study-guide")}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -112,18 +112,6 @@ export default function SubjectDashboard() {
             <div>
               <p className="font-display font-semibold text-foreground">Study Guide</p>
               <p className="text-xs text-muted-foreground">View your personalized plan</p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground" />
-        </Card>
-        <Card className="p-5 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow rounded-2xl" onClick={() => navigate("/progress")}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <p className="font-display font-semibold text-foreground">Progress</p>
-              <p className="text-xs text-muted-foreground">Track your mastery over time</p>
             </div>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground" />
