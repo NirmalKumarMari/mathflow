@@ -20,6 +20,7 @@ import StudyGuidePage from '@/pages/StudyGuidePage';
 import SubjectPlacement from '@/pages/SubjectPlacement';
 import Profile from '@/pages/Profile';
 import Foundation from '@/pages/Foundation';
+import Flashcards from '@/pages/Flashcards';
 import AppLayout from '@/components/layout/AppLayout';
 
 const AuthenticatedApp = () => {
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
           <Route path="/study-guide" element={<StudyGuidePage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/foundation" element={<Foundation />} />
+          <Route path="/flashcards" element={<Flashcards />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

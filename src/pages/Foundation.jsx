@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronD
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
+import { useI18n } from "@/hooks/useI18n";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
@@ -18,18 +19,16 @@ import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils"
 
 export default function Foundation() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { profile } = useStudentProfile();
   const { masteries, upsertMastery } = useTopicMasteries();
+  const { t } = useI18n();
 
   const [selectedTopicId, setSelectedTopicId] = useState(searchParams.get("topic") || "");
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
-  const [lessonMode, setLessonMode] = useState("ai"); // "ai" or "book"
-  const [selectedBook, setSelectedBook] = useState("");
+  const [lessonMode, setLessonMode] = useState("ai");
 
-  // Practice set state
   const [practiceAnswers, setPracticeAnswers] = useState({});
   const [practiceResults, setPracticeResults] = useState(null);
   const [evaluating, setEvaluating] = useState(false);
@@ -49,8 +48,8 @@ export default function Foundation() {
 
   useEffect(() => {
     if (selectedTopicId && !syllabusTopic && loadedSubject) {
-      const t = (loadedSubject.topics || []).find(t => t.id === selectedTopicId);
-      if (t) setCustomTopic(t);
+      const topic = (loadedSubject.topics || []).find(tp => tp.id === selectedTopicId);
+      setCustomTopic(topic || null);
     } else {
       setCustomTopic(null);
     }
@@ -61,20 +60,14 @@ export default function Foundation() {
   const { videos: youtubeVideos } = useYouTubeVideos(loadedSubject?.youtube_videos_url);
   const topicVideos = getVideosForTopic(youtubeVideos, selectedTopic);
 
-  // Weak topics = mastery_score < 30 or needs_review
-  const weakTopics = SYLLABUS_TOPICS.filter(t => {
-    const m = masteries.find(ms => ms.topic === t.name);
+  const weakTopics = SYLLABUS_TOPICS.filter(tp => {
+    const m = masteries.find(ms => ms.topic === tp.name);
     return m && (m.mastery_score < 30 || m.status === "needs_review");
   });
 
-  useEffect(() => {
-    if (selectedTopicId && !content) {
-      loadContent();
-    }
-  }, [selectedTopicId]);
-
-  const loadContent = async () => {
-    if (!selectedTopic) return;
+  const loadContent = useCallback(async (topicOverride) => {
+    const topic = topicOverride || selectedTopic;
+    if (!topic) return;
     setLoading(true);
     setContent(null);
     setPracticeAnswers({});
@@ -83,10 +76,10 @@ export default function Foundation() {
     const useTextbook = lessonMode === "book" && loadedSubject?.textbook_url;
     const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
     const llmParams = {
-      prompt: `${useTextbook ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${selectedTopic.name}".
+      prompt: `${useTextbook ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${topic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Preferred learning style: ${profile?.preferred_explanation_style || "step-by-step"}
-Subtopics: ${selectedTopic.subtopics.join(", ")}
+Subtopics: ${(topic.subtopics || []).join(", ")}
 
 Create a comprehensive foundational lesson following this structure:
 
@@ -136,7 +129,14 @@ Return JSON:
     setContent(response);
     setExpandedSection("conceptual_foundation");
     setLoading(false);
-  };
+  }, [selectedTopic, lessonMode, loadedSubject, profile]);
+
+  // Auto-load when the resolved topic changes and no content is loaded yet
+  useEffect(() => {
+    if (selectedTopic && !content && !loading) {
+      loadContent(selectedTopic);
+    }
+  }, [selectedTopic?.id, selectedTopic?.name]);
 
   const submitPractice = async () => {
     if (!content) return;
@@ -152,7 +152,7 @@ Return JSON:
 Question: ${p.question}
 Correct Answer: ${p.correct_answer}
 Student Answer: ${answer}
-Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
+Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
           response_json_schema: {
             type: "object",
             properties: { is_correct: { type: "boolean" } }
@@ -188,13 +188,20 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
   };
 
   const sections = content ? [
-    { key: "conceptual_foundation", label: "1. Conceptual Foundation", icon: <BookOpen className="w-4 h-4" />, content: content.conceptual_foundation },
-    { key: "key_formulas", label: "2. Key Formulas", icon: <Lightbulb className="w-4 h-4" />, content: content.key_formulas },
-    { key: "worked_examples", label: "3. Worked Examples", icon: <CheckCircle className="w-4 h-4" />, content: content.worked_examples },
-    { key: "common_mistakes", label: "4. Common Mistakes", icon: <XCircle className="w-4 h-4" />, content: content.common_mistakes },
+    { key: "conceptual_foundation", label: t("foundation.conceptual"), icon: <BookOpen className="w-4 h-4" />, content: content.conceptual_foundation },
+    { key: "key_formulas", label: t("foundation.formulas"), icon: <Lightbulb className="w-4 h-4" />, content: content.key_formulas },
+    { key: "worked_examples", label: t("foundation.examples"), icon: <CheckCircle className="w-4 h-4" />, content: content.worked_examples },
+    { key: "common_mistakes", label: t("foundation.mistakes"), icon: <XCircle className="w-4 h-4" />, content: content.common_mistakes },
   ] : [];
 
   const allAnswered = content && content.practice_problems.every(p => practiceAnswers[p.label]?.trim());
+
+  const handleTopicSelect = (v) => {
+    setSelectedTopicId(v);
+    setContent(null);
+    setPracticeResults(null);
+    setPracticeAnswers({});
+  };
 
   return (
     <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-6">
@@ -204,8 +211,8 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Foundation Lessons</h1>
-          <p className="text-sm text-muted-foreground">Deep-dive lessons for topics that need extra attention</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("foundation.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("foundation.subtitle")}</p>
         </div>
       </div>
 
@@ -217,7 +224,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
             lessonMode === "ai" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <Sparkles className="w-4 h-4" /> AI Lesson
+          <Sparkles className="w-4 h-4" /> {t("foundation.aiLesson")}
         </button>
         <button
           onClick={() => setLessonMode("book")}
@@ -225,7 +232,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
             lessonMode === "book" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <Library className="w-4 h-4" /> From a Book
+          <Library className="w-4 h-4" /> {t("foundation.fromBook")}
         </button>
       </div>
 
@@ -233,30 +240,30 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <Select value={selectedTopicId} onValueChange={v => { setSelectedTopicId(v); setContent(null); setPracticeResults(null); setPracticeAnswers({}); }}>
+            <Select value={selectedTopicId} onValueChange={handleTopicSelect}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a topic" />
+                <SelectValue placeholder={t("foundation.chooseTopic")} />
               </SelectTrigger>
               <SelectContent>
                 {loadedSubject?.topics?.length
-                  ? loadedSubject.topics.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ? loadedSubject.topics.map(tp => (
+                    <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
                   ))
-                  : weakTopics.length > 0 ? weakTopics.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} — {masteries.find(m => m.topic === t.name)?.mastery_score || 0}%
+                  : weakTopics.length > 0 ? weakTopics.map(tp => (
+                    <SelectItem key={tp.id} value={tp.id}>
+                      {tp.name} — {masteries.find(m => m.topic === tp.name)?.mastery_score || 0}%
                     </SelectItem>
-                  )) : SYLLABUS_TOPICS.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  )) : SYLLABUS_TOPICS.map(tp => (
+                    <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
                   ))
                 }
               </SelectContent>
             </Select>
           </div>
           {selectedTopicId && (
-            <Button onClick={loadContent} disabled={loading}>
+            <Button onClick={() => loadContent()} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {content ? "Reload" : "Load Lesson"}
+              {content ? t("foundation.reload") : t("foundation.loadLesson")}
             </Button>
           )}
         </div>
@@ -265,7 +272,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           <div className="mt-3 p-4 rounded-xl bg-muted/50 text-center">
             <Library className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              No textbook uploaded for this subject. Upload a textbook PDF when creating a subject to use this mode.
+              {t("foundation.noTextbook")}
             </p>
           </div>
         )}
@@ -273,18 +280,18 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           <div className="mt-3 p-4 rounded-xl bg-primary/5 text-center">
             <Library className="w-8 h-8 text-primary mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              Textbook loaded: {loadedSubject.textbook_title || "Textbook"}. Select a topic above to start reading.
+              {t("foundation.textbookLoaded")} {loadedSubject.textbook_title || "Textbook"}. {t("foundation.selectTopicToRead")}
             </p>
           </div>
         )}
 
         {lessonMode === "ai" && weakTopics.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="text-xs text-muted-foreground">Topics needing work:</span>
-            {weakTopics.map(t => (
-              <button key={t.id} onClick={() => { setSelectedTopicId(t.id); setContent(null); }} className="text-xs">
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-muted-foreground">{t("foundation.topicsNeedingWork")}</span>
+            {weakTopics.map(tp => (
+              <button key={tp.id} onClick={() => handleTopicSelect(tp.id)} className="text-xs">
                 <Badge variant="outline" className="cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-700">
-                  {t.name}
+                  {tp.name}
                 </Badge>
               </button>
             ))}
@@ -296,7 +303,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       {loading && (
         <Card className="p-10 text-center">
           <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Building your foundation lesson...</p>
+          <p className="text-muted-foreground">{t("foundation.building")}</p>
         </Card>
       )}
 
@@ -341,9 +348,9 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
           <Card className="p-5 space-y-4">
             <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">5</span>
-              Practice Problems
+              {t("foundation.practice")}
             </h3>
-            <p className="text-xs text-muted-foreground">Complete all four problems to test your understanding.</p>
+            <p className="text-xs text-muted-foreground">{t("foundation.completeAll")}</p>
 
             {!practiceResults ? (
               <>
@@ -355,7 +362,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
                         {p.question}
                       </p>
                       <Input
-                        placeholder="Your answer..."
+                        placeholder={t("foundation.yourAnswer")}
                         value={practiceAnswers[p.label] || ""}
                         onChange={e => setPracticeAnswers(prev => ({ ...prev, [p.label]: e.target.value }))}
                         disabled={evaluating}
@@ -364,14 +371,14 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
                   ))}
                 </div>
                 <Button onClick={submitPractice} disabled={!allAnswered || evaluating}>
-                  {evaluating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Checking...</> : "Check My Answers"}
+                  {evaluating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("foundation.checking")}</> : t("foundation.checkAnswers")}
                 </Button>
               </>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-foreground">
-                    Score: {practiceResults.filter(r => r.is_correct).length}/{practiceResults.length}
+                    {t("foundation.score")} {practiceResults.filter(r => r.is_correct).length}/{practiceResults.length}
                   </span>
                   <Badge className={practiceResults.filter(r => r.is_correct).length >= 3 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
                     {Math.round((practiceResults.filter(r => r.is_correct).length / practiceResults.length) * 100)}%
@@ -387,16 +394,16 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
                       <p className="font-medium text-foreground">{r.label}. {r.question}</p>
                       {!r.is_correct && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Your answer: <span className="line-through">{r.student_answer || "—"}</span> · Correct: <span className="font-medium text-foreground">{r.correct_answer}</span>
+                          {t("foundation.yourAnswerLabel")} <span className="line-through">{r.student_answer || "—"}</span> · {t("foundation.correctLabel")} <span className="font-medium text-foreground">{r.correct_answer}</span>
                         </p>
                       )}
                     </div>
                   </div>
                 ))}
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" onClick={() => { setPracticeResults(null); setPracticeAnswers({}); }}>Try Again</Button>
+                  <Button variant="outline" onClick={() => { setPracticeResults(null); setPracticeAnswers({}); }}>{t("foundation.tryAgain")}</Button>
                   <Link to="/practice">
-                    <Button className="gap-2">Continue Practicing <ArrowRight className="w-4 h-4" /></Button>
+                    <Button className="gap-2">{t("foundation.continuePracticing")} <ArrowRight className="w-4 h-4" /></Button>
                   </Link>
                 </div>
               </div>
@@ -409,7 +416,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       {topicVideos.length > 0 && content && !loading && (
         <div className="space-y-3">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <Youtube className="w-5 h-5 text-primary" /> Video Lessons
+            <Youtube className="w-5 h-5 text-primary" /> {t("foundation.videoLessons")}
           </h3>
           {topicVideos.map((vid, i) => (
             <YouTubeEmbed key={i} videoId={vid} title={`Video ${i + 1}`} />
@@ -421,11 +428,13 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       {!selectedTopicId && !loading && (lessonMode === "ai" || (lessonMode === "book" && loadedSubject?.textbook_url)) && (
         <Card className="p-10 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-display font-semibold text-foreground mb-2">Choose a topic to begin</h3>
+          <h3 className="font-display font-semibold text-foreground mb-2">{t("foundation.chooseToBegin")}</h3>
           <p className="text-sm text-muted-foreground">
-            {weakTopics.length > 0
-              ? `You have ${weakTopics.length} topic${weakTopics.length > 1 ? "s" : ""} that need foundational work.`
-              : "Select any topic to review its foundational concepts."}
+            {weakTopics.length === 1
+              ? t("foundation.weakTopicsSingular")
+              : weakTopics.length > 1
+                ? t("foundation.weakTopicsPlural").replace("{n}", weakTopics.length)
+                : t("foundation.selectAnyTopic")}
           </p>
         </Card>
       )}

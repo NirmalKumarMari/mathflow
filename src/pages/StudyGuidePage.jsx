@@ -14,6 +14,7 @@ import StyledMarkdown from "@/components/ui/markdown";
 import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
 import { useYouTubeVideos } from "@/hooks/useYouTubeVideos";
 import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function StudyGuidePage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function StudyGuidePage() {
   const { profile, isLoading: profileLoading } = useStudentProfile();
   const { masteries } = useTopicMasteries();
   const { guides, latestGuide, isLoading: guidesLoading, updateGuide, createGuide } = useStudyGuides(subjectId);
+  const { t } = useI18n();
   const [adjustText, setAdjustText] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -197,7 +199,7 @@ Revise the study guide based on the student's request. Return JSON:
   "gaps": ["updated gaps"],
   "next_topics": ["updated recommended topics"],
   "plan_details": "updated detailed plan"
-}`,
+}${getLanguageInstruction(getSubjectLanguage(subject, profile))}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -246,7 +248,7 @@ Return JSON:
   "gaps": ["topics needing work"],
   "next_topics": ["recommended next 3 topics"],
   "plan_details": "a fresh detailed study plan"
-}`,
+}${getLanguageInstruction(getSubjectLanguage(subject, profile))}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -275,15 +277,15 @@ Return JSON:
       <div className="p-6 md:p-10 max-w-3xl mx-auto text-center">
         <Card className="p-10">
           <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-xl font-display font-bold text-foreground mb-2">No Study Guide Yet</h2>
+          <h2 className="text-xl font-display font-bold text-foreground mb-2">{t("sg.noGuide")}</h2>
           <p className="text-muted-foreground mb-6">
             {subjectId
-              ? "Take the placement test to generate your personalized study guide for this subject."
-              : "Complete the onboarding to generate your first personalized study guide."}
+              ? t("sg.takePlacement")
+              : t("sg.completeOnboarding")}
           </p>
           {subjectId
-            ? <Button onClick={() => navigate(`/subject/${subjectId}/placement`)}>Take Placement Test</Button>
-            : <Button onClick={() => navigate("/onboarding")}>Get Started</Button>}
+            ? <Button onClick={() => navigate(`/subject/${subjectId}/placement`)}>{t("sg.takePlacementTest")}</Button>
+            : <Button onClick={() => navigate("/onboarding")}>{t("sg.getStarted")}</Button>}
         </Card>
       </div>
     );
@@ -295,18 +297,18 @@ Return JSON:
         <div>
           {subjectId && (
             <Link to={`/subject/${subjectId}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
-              <ArrowLeft className="w-3 h-3" /> Back to {subject?.name || "Dashboard"}
+              <ArrowLeft className="w-3 h-3" /> {t("sg.backTo")} {subject?.name || t("sg.dashboard")}
             </Link>
           )}
-          <h1 className="text-2xl font-display font-bold text-foreground mb-1">{subject?.name ? `${subject.name} Study Guide` : "Your Study Guide"}</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">{subject?.name ? `${subject.name} ${t("sg.studyGuide")}` : t("sg.yourStudyGuide")}</h1>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">Version {latestGuide.version || 1}</Badge>
+            <Badge variant="outline">{t("sg.version")} {latestGuide.version || 1}</Badge>
             <Badge className={
               latestGuide.status === "approved" ? "bg-emerald-100 text-emerald-700" :
               latestGuide.status === "pending" ? "bg-amber-100 text-amber-700" :
               "bg-muted text-muted-foreground"
             }>
-              {latestGuide.status === "approved" ? "Active" : latestGuide.status === "pending" ? "Pending Review" : latestGuide.status}
+              {latestGuide.status === "approved" ? t("sg.active") : latestGuide.status === "pending" ? t("sg.pendingReview") : latestGuide.status}
             </Badge>
           </div>
         </div>
@@ -321,21 +323,21 @@ Return JSON:
                 <Calendar className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="font-display font-semibold text-foreground">Weekly Review Ready</p>
-                <p className="text-xs text-muted-foreground">Your AI analyzed your recent practice — review and approve the updates</p>
+                <p className="font-display font-semibold text-foreground">{t("sg.weeklyReady")}</p>
+                <p className="text-xs text-muted-foreground">{t("sg.weeklySubtitle")}</p>
               </div>
             </div>
 
             {reviewLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing your recent practice...
+                <Loader2 className="w-4 h-4 animate-spin" /> {t("sg.analyzing")}
               </div>
             ) : weeklyReview ? (
               <div className="space-y-4">
                 {/* Analysis */}
                 <div className="p-4 rounded-xl bg-card border border-border">
                   <p className="text-xs font-semibold text-primary flex items-center gap-1 mb-2">
-                    <Brain className="w-3 h-3" /> Problem-Solving Analysis
+                    <Brain className="w-3 h-3" /> {t("sg.analysis")}
                   </p>
                   <StyledMarkdown>{weeklyReview.analysis}</StyledMarkdown>
                 </div>
@@ -343,7 +345,7 @@ Return JSON:
                 {/* Tips */}
                 <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                   <p className="text-xs font-semibold text-amber-700 flex items-center gap-1 mb-2">
-                    <Lightbulb className="w-3 h-3" /> Tips for Improvement
+                    <Lightbulb className="w-3 h-3" /> {t("sg.tips")}
                   </p>
                   <StyledMarkdown>{weeklyReview.tips}</StyledMarkdown>
                 </div>
@@ -352,7 +354,7 @@ Return JSON:
                 {weeklyReview.weekly_idea && (
                   <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
                     <p className="text-xs font-semibold text-violet-700 flex items-center gap-1 mb-2">
-                      <Sparkles className="w-3 h-3" /> This Week's Study Idea
+                      <Sparkles className="w-3 h-3" /> {t("sg.weeklyIdea")}
                     </p>
                     <p className="text-sm text-foreground">{weeklyReview.weekly_idea}</p>
                   </div>
@@ -361,10 +363,10 @@ Return JSON:
                 <div className="flex gap-2">
                   <Button onClick={approveWeeklyReview} disabled={loading} className="gap-2">
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
-                    Approve & Update Guide
-                  </Button>
-                  <Button variant="ghost" onClick={dismissWeeklyReview} className="gap-2 text-muted-foreground">
-                    <X className="w-4 h-4" /> Skip This Week
+                    {t("sg.approveUpdate")}
+                    </Button>
+                    <Button variant="ghost" onClick={dismissWeeklyReview} className="gap-2 text-muted-foreground">
+                    <X className="w-4 h-4" /> {t("sg.skipWeek")}
                   </Button>
                 </div>
               </div>
@@ -381,7 +383,7 @@ Return JSON:
               <Sparkles className="w-4 h-4 text-violet-600" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-violet-700 mb-1">This Week's Study Idea</p>
+              <p className="text-xs font-semibold text-violet-700 mb-1">{t("sg.weeklyIdea")}</p>
               <p className="text-sm text-foreground">{latestGuide.weekly_idea}</p>
             </div>
           </div>
@@ -392,7 +394,7 @@ Return JSON:
       {latestGuide.strengths?.length > 0 && (
         <Card className="p-5">
           <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-emerald-500" /> Your Strengths
+            <CheckCircle className="w-5 h-5 text-emerald-500" /> {t("sg.strengths")}
           </h3>
           <div className="flex flex-wrap gap-2">
             {latestGuide.strengths.map((s, i) => (
@@ -406,7 +408,7 @@ Return JSON:
       {latestGuide.gaps?.length > 0 && (
         <Card className="p-5">
           <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" /> Areas to Improve
+            <AlertTriangle className="w-5 h-5 text-amber-500" /> {t("sg.areasToImprove")}
           </h3>
           <div className="flex flex-wrap gap-2">
             {latestGuide.gaps.map((g, i) => (
@@ -420,7 +422,7 @@ Return JSON:
       {latestGuide.next_topics?.length > 0 && (
         <Card className="p-5">
           <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <ArrowRight className="w-5 h-5 text-primary" /> Recommended Next Steps
+            <ArrowRight className="w-5 h-5 text-primary" /> {t("sg.nextSteps")}
           </h3>
           <ol className="space-y-2">
             {latestGuide.next_topics.map((t, i) => (
@@ -439,7 +441,7 @@ Return JSON:
       {guideTopicVideos.length > 0 && (
         <Card className="p-5">
           <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Youtube className="w-5 h-5 text-primary" /> Video Lessons
+            <Youtube className="w-5 h-5 text-primary" /> {t("sg.videoLessons")}
           </h3>
           <div className="space-y-4">
             {guideTopicVideos.map((vt, i) => (
@@ -457,7 +459,7 @@ Return JSON:
       {/* Plan Details */}
       {latestGuide.plan_details && (
         <Card className="p-5">
-          <h3 className="font-display font-semibold text-foreground mb-3">Study Plan</h3>
+          <h3 className="font-display font-semibold text-foreground mb-3">{t("sg.studyPlan")}</h3>
           <StyledMarkdown className="text-muted-foreground">{latestGuide.plan_details}</StyledMarkdown>
         </Card>
       )}
@@ -466,17 +468,17 @@ Return JSON:
       {latestGuide.status === "pending" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <Card className="p-5 border-primary/20 bg-primary/5">
-            <p className="text-sm text-foreground mb-4">Do you agree with this study plan?</p>
+            <p className="text-sm text-foreground mb-4">{t("sg.agreePrompt")}</p>
             <div className="flex flex-wrap gap-3">
               <Button onClick={handleApprove} className="gap-2" disabled={loading}>
-                <ThumbsUp className="w-4 h-4" /> Agree & Start
+                <ThumbsUp className="w-4 h-4" /> {t("sg.agreeStart")}
               </Button>
               <Button variant="outline" onClick={() => setShowAdjust(!showAdjust)} className="gap-2" disabled={loading}>
-                <Pencil className="w-4 h-4" /> Adjust
+                <Pencil className="w-4 h-4" /> {t("sg.adjust")}
               </Button>
               <Button variant="ghost" onClick={handleDecline} className="gap-2 text-muted-foreground" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-                Generate New Plan
+                {t("sg.generateNew")}
               </Button>
             </div>
           </Card>
@@ -487,12 +489,12 @@ Return JSON:
                 <Textarea
                   value={adjustText}
                   onChange={e => setAdjustText(e.target.value)}
-                  placeholder="Tell us what you'd like to change about this study plan..."
+                  placeholder={t("sg.adjustPlaceholder")}
                   className="mb-3 h-24"
                 />
                 <Button onClick={handleAdjust} disabled={!adjustText.trim() || loading} className="gap-2">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Update My Plan
+                  {t("sg.updatePlan")}
                 </Button>
               </Card>
             </motion.div>
@@ -505,10 +507,10 @@ Return JSON:
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-emerald-700">
               <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">Study plan active</span>
+              <span className="font-medium">{t("sg.planActive")}</span>
             </div>
             <Button size="sm" onClick={() => navigate(subjectId ? `/practice?subject=${subjectId}` : "/practice")} className="gap-2">
-              Start Practicing <ArrowRight className="w-4 h-4" />
+              {t("sg.startPracticing")} <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </Card>
@@ -517,7 +519,7 @@ Return JSON:
       {/* Version History */}
       {guides.length > 1 && (
         <div className="pt-4 border-t border-border">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Plan History</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("sg.planHistory")}</h3>
           <div className="space-y-2">
             {guides.slice(1).map(g => (
               <div key={g.id} className="flex items-center justify-between text-xs text-muted-foreground p-2 rounded-lg bg-muted/50">

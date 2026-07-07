@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, BookOpen, FileText,
+  LayoutDashboard, BookOpen, FileText, Layers,
   GraduationCap, User,
 } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -15,6 +15,7 @@ export default function AppLayout() {
     { path: "/", icon: LayoutDashboard, label: t("nav.home") },
     { path: "/practice", icon: BookOpen, label: t("nav.practice") },
     { path: "/foundation", icon: BookOpen, label: t("nav.learn") },
+    { path: "/flashcards", icon: Layers, label: t("nav.flashcards") },
     { path: "/study-guide", icon: FileText, label: t("nav.plan") },
   ];
 
