@@ -16,7 +16,9 @@ export function useYouTubeVideos(youtubeVideosUrl) {
 
 export function getVideosForTopic(allVideos, topic) {
   if (!topic || !allVideos) return [];
-  const fromTopic = topic.youtube_videos || [];
+  const fromTopic = (topic.youtube_videos || []).map(v =>
+    typeof v === 'string' ? v : v.url || v.youtube_id || v.video_id || ''
+  );
   const fromJson = allVideos.filter(v =>
     v.topic_id === topic.id ||
     v.topic_name?.toLowerCase() === topic.name?.toLowerCase()

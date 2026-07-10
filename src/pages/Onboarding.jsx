@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import { COUNTRIES, getSyllabiForCountry } from "@/lib/countries";
-import { languageFromCountry } from "@/lib/languageUtils";
+import { languageFromCountry, getLanguageInstruction } from "@/lib/languageUtils";
 import { base44 } from "@/api/base44Client";
 
 const STEPS = ["Welcome", "About You", "Country & Syllabus", "Your Goals", "Getting Started", "Quick Quiz"];
@@ -69,7 +69,7 @@ Return JSON:
       "hint": "a short hint"
     }
   ]
-}`,
+}${getLanguageInstruction(formData.language)}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -107,7 +107,7 @@ Return JSON:
 Question: ${q.question}
 Correct Answer: ${q.correct_answer}
 Student Answer: ${answer}
-Is the student's answer correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
+Is the student's answer correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${getLanguageInstruction(formData.language)}`,
           response_json_schema: {
             type: "object",
             properties: { is_correct: { type: "boolean" } }
@@ -153,7 +153,7 @@ Create a personalized study guide. Return JSON:
   "gaps": ["topics to focus on, especially weak quiz topics"],
   "next_topics": ["first 3 topics to study in priority order"],
   "plan_details": "A friendly, detailed study plan paragraph based on their quiz performance"
-}`,
+}${getLanguageInstruction(formData.language)}`,
       response_json_schema: {
         type: "object",
         properties: {

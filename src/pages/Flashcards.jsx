@@ -69,7 +69,7 @@ export default function Flashcards() {
 
     const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
     const response = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are creating study flashcards for the topic "${selectedTopic.name}".
+      prompt: `${loadedSubject?.textbook_url ? "Use the attached textbook as your primary reference. Base ALL flashcards on the material from the textbook.\n\n" : ""}You are creating study flashcards for the topic "${selectedTopic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Subtopics: ${(selectedTopic.subtopics || []).join(", ")}
 
@@ -82,6 +82,7 @@ Return JSON:
     { "front": "the term or question", "back": "the definition or answer" }
   ]
 }${getLanguageInstruction(tutoringLanguage)}`,
+      ...(loadedSubject?.textbook_url ? { file_urls: [loadedSubject.textbook_url] } : {}),
       response_json_schema: {
         type: "object",
         properties: {

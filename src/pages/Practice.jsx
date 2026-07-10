@@ -15,6 +15,8 @@ import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils"
 import { useI18n } from "@/hooks/useI18n";
 import ReactMarkdown from "react-markdown";
 import HelpChat from "@/components/help/HelpChat";
+import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
+import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
 
 export default function Practice() {
   const [searchParams] = useSearchParams();
@@ -61,6 +63,8 @@ export default function Practice() {
   }, [selectedTopicId, syllabusTopic, loadedSubject]);
 
   const selectedTopic = syllabusTopic || customTopic;
+  const { videos: youtubeVideos } = useYouTubeVideos(loadedSubject?.youtube_videos_url);
+  const topicVideos = getVideosForTopic(youtubeVideos, selectedTopic);
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
 
   useEffect(() => {
@@ -111,7 +115,53 @@ export default function Practice() {
       llmParams.file_urls = [loadedSubject.textbook_url];
     }
 
+    // Try problem bank first — avoids unnecessary LLM calls
+    try {
+      const bankMatches = await base44.entities.ProblemBank.filter({
+        topic: selectedTopic.name,
+        difficulty,
+        language: tutoringLanguage,
+      });
+      if (bankMatches.length > 0) {
+        const pick = bankMatches[Math.floor(Math.random() * bankMatches.length)];
+        await base44.entities.ProblemBank.update(pick.id, {
+          times_used: (pick.times_used || 0) + 1
+        });
+        setCurrentQuestion({
+          question: pick.question_text,
+          correct_answer: pick.correct_answer,
+          solution_steps: pick.solution_steps,
+          hints: pick.hints,
+          difficulty: pick.difficulty,
+          subtopic: pick.subtopic,
+        });
+        setLoading(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+        return;
+      }
+    } catch (e) {
+      // fall through to LLM
+    }
+
     const response = await base44.integrations.Core.InvokeLLM(llmParams);
+
+    // Save to problem bank for future reuse
+    try {
+      await base44.entities.ProblemBank.create({
+        topic: selectedTopic.name,
+        subtopic: response.subtopic,
+        difficulty: response.difficulty,
+        question_text: response.question,
+        correct_answer: response.correct_answer,
+        solution_steps: response.solution_steps || "",
+        hints: response.hints || "",
+        language: tutoringLanguage,
+        source: loadedSubject?.textbook_url ? "textbook" : "ai",
+        times_used: 1,
+      });
+    } catch (e) {
+      // non-critical
+    }
 
     setCurrentQuestion(response);
     setLoading(false);
@@ -414,6 +464,13 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       {t("practice.nextQuestion")} <ArrowRight className="w-4 h-4" />
                       </Button>
                       )}
+                      {!loadingSolution && topicVideos.length > 0 && (
+                        <div className="space-y-2 mt-3">
+                          {topicVideos.map((vid, i) => (
+                            <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} />
+                          ))}
+                        </div>
+                      )}
                       </motion.div>
                       )}
 
@@ -502,6 +559,14 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                         <ReactMarkdown>{resources}</ReactMarkdown>
                       </div>
                     </motion.div>
+                  )}
+
+                  {!feedback.is_correct && topicVideos.length > 0 && (
+                    <div className="space-y-2">
+                      {topicVideos.map((vid, i) => (
+                        <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} />
+                      ))}
+                    </div>
                   )}
                 </motion.div>
               )}

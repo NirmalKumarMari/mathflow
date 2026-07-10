@@ -34,4 +34,20 @@ export const AVAILABLE_TEXTBOOKS = [
     syllabus_url: null,
     youtube_videos_url: null,
   },
+  {
+    id: "math_6_7",
+    title: "6th/7th Grade Math Curriculum",
+    language: "English",
+    textbook_url: null,
+    syllabus_url: "https://media.base44.com/files/public/6a3587c8e40e63059cdaac7f/cca66f00b_math_syllabus1.json",
+    youtube_videos_url: null,
+  },
+  {
+    id: "bengali_child_dev",
+    title: "বাচ্চাদের শারীরিক ও মানসিক অবস্থার বিকাশ",
+    language: "Bengali",
+    textbook_url: "https://media.base44.com/files/public/6a3587c8e40e63059cdaac7f/d8f43a7bb_______.docx",
+    syllabus_url: null,
+    youtube_videos_url: null,
+  },
 ];

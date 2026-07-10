@@ -9,6 +9,7 @@ import { Plus, Loader2, BookText } from "lucide-react";
 import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
 import { base44 } from "@/api/base44Client";
 import { languageFromCountry } from "@/lib/languageUtils";
+import { useI18n } from "@/hooks/useI18n";
 
 const GRADES = ["6th", "7th"];
 const COUNTRIES = ["United States", "United Kingdom", "India", "Bangladesh", "Australia", "Canada", "Singapore", "Other"];
@@ -28,6 +29,7 @@ export default function AddSubjectDialog({ onCreate }) {
   const [color, setColor] = useState("violet");
   const [textbookId, setTextbookId] = useState("none");
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
 
   const resetState = () => {
     setName("");
@@ -134,28 +136,28 @@ Return JSON:
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetState(); }}>
       <DialogTrigger asChild>
         <Button className="gap-2">
-          <Plus className="w-4 h-4" /> Add Subject
+          <Plus className="w-4 h-4" /> {t("addSubject.button")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add a New Subject</DialogTitle>
+          <DialogTitle>{t("addSubject.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label className="mb-1.5 block">Subject Name</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Physics, Chemistry, Biology" />
+            <Label className="mb-1.5 block">{t("addSubject.name")}</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("addSubject.namePlaceholder")} />
           </div>
 
           <div>
-            <Label className="mb-1.5 block">Description (optional)</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What should this subject cover?" className="h-20" />
+            <Label className="mb-1.5 block">{t("addSubject.description")}</Label>
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t("addSubject.descriptionPlaceholder")} className="h-20" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="mb-1.5 block">Country / Syllabus</Label>
+              <Label className="mb-1.5 block">{t("addSubject.country")}</Label>
               <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -164,18 +166,18 @@ Return JSON:
               </Select>
             </div>
             <div>
-              <Label className="mb-1.5 block">Grade Level</Label>
+              <Label className="mb-1.5 block">{t("addSubject.grade")}</Label>
               <Select value={grade} onValueChange={setGrade}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? "Adaptive" : `${g} Grade`}</SelectItem>)}
+                  {GRADES.map(g => <SelectItem key={g} value={g}>{g === "adaptive" ? t("addSubject.adaptive") : `${g} ${t("addSubject.gradeSuffix")}`}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div>
-            <Label className="mb-1.5 block">Textbook</Label>
+            <Label className="mb-1.5 block">{t("addSubject.textbook")}</Label>
             <Select value={textbookId} onValueChange={setTextbookId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -190,12 +192,12 @@ Return JSON:
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1.5">
-              Textbooks are managed by your teacher. Select one to attach its content to this subject.
+              {t("addSubject.textbookHint")}
             </p>
           </div>
 
           <div>
-            <Label className="mb-1.5 block">Color</Label>
+            <Label className="mb-1.5 block">{t("addSubject.color")}</Label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <button
@@ -209,10 +211,10 @@ Return JSON:
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>{t("addSubject.cancel")}</Button>
           <Button onClick={handleCreate} disabled={loading || !name.trim()}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            Create Subject
+            {t("addSubject.create")}
           </Button>
         </div>
       </DialogContent>
