@@ -13,10 +13,11 @@ import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import { getProblemCreatorPrompt } from "@/lib/agentPrompts";
 import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
 import { useI18n } from "@/hooks/useI18n";
-import ReactMarkdown from "react-markdown";
+import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
 import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
 import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
+import { Youtube } from "lucide-react";
 
 export default function Practice() {
   const [searchParams] = useSearchParams();
@@ -38,6 +39,7 @@ export default function Practice() {
   const [resources, setResources] = useState("");
   const [sessionQuestions, setSessionQuestions] = useState(0);
   const [sessionCorrect, setSessionCorrect] = useState(0);
+  const [watchVideo, setWatchVideo] = useState(false);
   const inputRef = useRef(null);
 
   const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
@@ -87,6 +89,7 @@ export default function Practice() {
     setShowFullSolution(false);
     setFullSolution(null);
     setShowResources(false);
+    setWatchVideo(false);
 
     const difficulty = getDifficulty();
     const subtopicIdx = Math.floor(Math.random() * selectedTopic.subtopics.length);
@@ -408,7 +411,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
               </div>
 
               <div className="text-lg font-medium text-foreground leading-relaxed">
-                <ReactMarkdown>{currentQuestion.question}</ReactMarkdown>
+                <StyledMarkdown>{currentQuestion.question}</StyledMarkdown>
               </div>
 
               {/* Hint */}
@@ -455,9 +458,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       <Loader2 className="w-4 h-4 animate-spin" /> {t("practice.generatingSolution")}
                     </div>
                   ) : (
-                    <div className="prose prose-sm max-w-none text-foreground">
-                      <ReactMarkdown>{fullSolution}</ReactMarkdown>
-                    </div>
+                    <StyledMarkdown>{fullSolution}</StyledMarkdown>
                   )}
                   {!loadingSolution && (
                     <Button size="sm" onClick={generateQuestion} className="mt-2 gap-2">
@@ -465,10 +466,18 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       </Button>
                       )}
                       {!loadingSolution && topicVideos.length > 0 && (
-                        <div className="space-y-2 mt-3">
-                          {topicVideos.map((vid, i) => (
-                            <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} />
-                          ))}
+                        <div className="mt-3">
+                          {watchVideo ? (
+                            <div className="space-y-2">
+                              {topicVideos.map((vid, i) => (
+                                <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} autoplay />
+                              ))}
+                            </div>
+                          ) : (
+                            <Button variant="outline" size="sm" onClick={() => setWatchVideo(true)} className="gap-2 text-violet-700 border-violet-300 hover:bg-violet-100">
+                              <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}
+                            </Button>
+                          )}
                         </div>
                       )}
                       </motion.div>
@@ -555,17 +564,23 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       animate={{ opacity: 1 }}
                       className="p-4 rounded-xl bg-muted border border-border"
                     >
-                      <div className="prose prose-sm max-w-none text-foreground">
-                        <ReactMarkdown>{resources}</ReactMarkdown>
-                      </div>
+                      <StyledMarkdown>{resources}</StyledMarkdown>
                     </motion.div>
                   )}
 
                   {!feedback.is_correct && topicVideos.length > 0 && (
-                    <div className="space-y-2">
-                      {topicVideos.map((vid, i) => (
-                        <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} />
-                      ))}
+                    <div>
+                      {watchVideo ? (
+                        <div className="space-y-2">
+                          {topicVideos.map((vid, i) => (
+                            <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} autoplay />
+                          ))}
+                        </div>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setWatchVideo(true)} className="gap-2 text-rose-700 border-rose-300 hover:bg-rose-100">
+                          <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </motion.div>

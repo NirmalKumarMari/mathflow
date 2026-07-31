@@ -7,13 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, ArrowRight, ArrowLeft, Sparkles, CheckCircle, XCircle, Loader2, MapPin, BookOpen } from "lucide-react";
+import { GraduationCap, ArrowRight, ArrowLeft, Sparkles, CheckCircle, XCircle, Loader2, MapPin, BookOpen, BookText, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import { COUNTRIES, getSyllabiForCountry } from "@/lib/countries";
 import { languageFromCountry, getLanguageInstruction } from "@/lib/languageUtils";
+import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
 import { base44 } from "@/api/base44Client";
+
+const ONBOARDING_TEXTBOOKS = AVAILABLE_TEXTBOOKS.filter(tb => tb.topics?.length > 0);
 
 const STEPS = ["Welcome", "About You", "Country & Syllabus", "Your Goals", "Getting Started", "Quick Quiz"];
 
@@ -35,10 +38,20 @@ export default function Onboarding() {
   const [quizResults, setQuizResults] = useState(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [syllabusMode, setSyllabusMode] = useState("country");
+  const [textbookId, setTextbookId] = useState("");
   const { createProfile } = useStudentProfile();
   const navigate = useNavigate();
 
+  const selectedTextbook = ONBOARDING_TEXTBOOKS.find(tb => tb.id === textbookId);
+  const subjectName = syllabusMode === "textbook" && selectedTextbook
+    ? (selectedTextbook.subject || selectedTextbook.title)
+    : "math";
+
   const getTopicsForGrade = () => {
+    if (syllabusMode === "textbook" && selectedTextbook) {
+      return selectedTextbook.topics;
+    }
     const relevant = SYLLABUS_TOPICS.filter(t =>
       t.grades.includes(formData.grade_level) || formData.grade_level === "adaptive"
     );
@@ -52,7 +65,7 @@ export default function Onboarding() {
     const topicsToQuiz = topics.slice(0, Math.min(5, topics.length));
 
     const response = await base44.integrations.Core.InvokeLLM({
-      prompt: `Generate a short diagnostic quiz for a ${formData.grade_level} grade math student (age ${formData.age}).
+      prompt: `Generate a short diagnostic quiz for a ${formData.grade_level} grade ${subjectName} student (age ${formData.age}).
 Goals: "${formData.goals}"
 
 Create exactly ${topicsToQuiz.length} questions, one for each of these topics: ${topicsToQuiz.map(t => t.name).join(", ")}.
@@ -176,13 +189,31 @@ Create a personalized study guide. Return JSON:
       current_topic: guideResponse.next_topics?.[0] || topics[0].name,
     });
 
+    let createdSubjectId = null;
+    if (syllabusMode === "textbook" && selectedTextbook) {
+      const subject = await base44.entities.Subject.create({
+        name: selectedTextbook.title,
+        subject_type: "custom",
+        grade_level: formData.grade_level,
+        description: `Study guide for ${selectedTextbook.title}`,
+        color: "violet",
+        language: selectedTextbook.language,
+        topics: selectedTextbook.topics,
+        textbook_url: selectedTextbook.textbook_url,
+        textbook_title: selectedTextbook.title,
+        placement_completed: false,
+      });
+      createdSubjectId = subject.id;
+    }
+
     await base44.entities.StudyGuide.create({
       version: 1,
       status: "pending",
+      subject_id: createdSubjectId,
       strengths: guideResponse.strengths || [],
       gaps: guideResponse.gaps || [],
       next_topics: guideResponse.next_topics || [],
-      plan_details: guideResponse.plan_details || "Let's get started with your math journey!",
+      plan_details: guideResponse.plan_details || `Let's get started with your ${subjectName} journey!`,
     });
 
     // Initialize topic masteries with quiz scores
@@ -205,7 +236,7 @@ Create a personalized study guide. Return JSON:
 
   const canProceed = () => {
     if (step === 1) return formData.age && formData.grade_level;
-    if (step === 2) return formData.country && formData.syllabus;
+    if (step === 2) return syllabusMode === "textbook" ? !!textbookId : (formData.country && formData.syllabus);
     if (step === 3) return formData.goals;
     if (step === 4) return formData.use_case;
     return true;
@@ -298,63 +329,116 @@ Create a personalized study guide. Return JSON:
             {step === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">Country & Syllabus</h2>
-                  <p className="text-muted-foreground">Tell us where you study so we can tailor your lessons.</p>
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">Choose Your Curriculum</h2>
+                  <p className="text-muted-foreground">Tell us where you study, or pick a ready-made textbook.</p>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Which country are you from?</Label>
-                    <Select
-                      value={formData.country}
-                      onValueChange={v => setFormData({
-                        ...formData,
-                        country: v,
-                        syllabus: "",
-                        language: languageFromCountry(v),
-                      })}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select your country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRIES.map(c => (
-                          <SelectItem key={c.code} value={c.name}>
-                            <span className="flex items-center gap-2">
-                              <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {c.name}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Which syllabus do you follow?</Label>
-                    <Select
-                      value={formData.syllabus}
-                      onValueChange={v => setFormData({ ...formData, syllabus: v })}
-                      disabled={!formData.country}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder={formData.country ? "Select your syllabus" : "Select a country first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getSyllabiForCountry(formData.country).map(s => (
-                          <SelectItem key={s.id} value={s.name}>
-                            <span className="flex items-center gap-2">
-                              <BookOpen className="w-3.5 h-3.5 text-muted-foreground" /> {s.name}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {formData.country && (
-                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">{languageFromCountry(formData.country)}</span> will be used as your tutoring language.
-                      {languageFromCountry(formData.country) === "English" && " You'll be tutored in English."}
+
+                <div className="flex gap-2 p-1 bg-muted rounded-xl">
+                  <button
+                    onClick={() => setSyllabusMode("country")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      syllabusMode === "country" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" /> My Country's Syllabus
+                  </button>
+                  <button
+                    onClick={() => setSyllabusMode("textbook")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      syllabusMode === "textbook" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <BookText className="w-4 h-4" /> Use a Textbook
+                  </button>
+                </div>
+
+                {syllabusMode === "country" && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Which country are you from?</Label>
+                      <Select
+                        value={formData.country}
+                        onValueChange={v => setFormData({
+                          ...formData,
+                          country: v,
+                          syllabus: "",
+                          language: languageFromCountry(v),
+                        })}
+                      >
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="Select your country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRIES.map(c => (
+                            <SelectItem key={c.code} value={c.name}>
+                              <span className="flex items-center gap-2">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {c.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <Label>Which syllabus do you follow?</Label>
+                      <Select
+                        value={formData.syllabus}
+                        onValueChange={v => setFormData({ ...formData, syllabus: v })}
+                        disabled={!formData.country}
+                      >
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder={formData.country ? "Select your syllabus" : "Select a country first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getSyllabiForCountry(formData.country).map(s => (
+                            <SelectItem key={s.id} value={s.name}>
+                              <span className="flex items-center gap-2">
+                                <BookOpen className="w-3.5 h-3.5 text-muted-foreground" /> {s.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.country && (
+                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">{languageFromCountry(formData.country)}</span> will be used as your tutoring language.
+                        {languageFromCountry(formData.country) === "English" && " You'll be tutored in English."}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {syllabusMode === "textbook" && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Choose a textbook</Label>
+                      <Select value={textbookId} onValueChange={v => {
+                        const tb = ONBOARDING_TEXTBOOKS.find(x => x.id === v);
+                        setTextbookId(v);
+                        setFormData({ ...formData, language: tb?.language || "English" });
+                      }}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="Select a textbook" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ONBOARDING_TEXTBOOKS.map(tb => (
+                            <SelectItem key={tb.id} value={tb.id}>
+                              <span className="flex items-center gap-2">
+                                <BookText className="w-3.5 h-3.5 text-muted-foreground" /> {tb.title}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedTextbook && (
+                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                        This book's content will drive your lessons, practice, and flashcards. <span className="font-medium text-foreground">{selectedTextbook.language}</span> will be used as your tutoring language.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

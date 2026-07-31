@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function YouTubeEmbed({ videoId, title }) {
+export default function YouTubeEmbed({ videoId, title, autoplay = false }) {
   if (!videoId) return null;
 
   // Extract video ID from full URL if needed
@@ -15,7 +15,7 @@ export default function YouTubeEmbed({ videoId, title }) {
     <div className="relative w-full overflow-hidden rounded-xl border border-border bg-black" style={{ paddingBottom: "56.25%" }}>
       <iframe
         className="absolute top-0 left-0 w-full h-full"
-        src={`https://www.youtube.com/embed/${id}`}
+        src={`https://www.youtube.com/embed/${id}${autoplay ? "?autoplay=1" : ""}`}
         title={title || "YouTube video"}
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

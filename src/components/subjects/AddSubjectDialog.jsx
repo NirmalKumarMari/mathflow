@@ -181,14 +181,24 @@ Return JSON:
             <Select value={textbookId} onValueChange={setTextbookId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {AVAILABLE_TEXTBOOKS.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    <span className="flex items-center gap-2">
-                      <BookText className="w-3.5 h-3.5 text-muted-foreground" />
-                      {t.title}
-                    </span>
-                  </SelectItem>
-                ))}
+                {AVAILABLE_TEXTBOOKS
+                  .slice()
+                  .sort((a, b) => {
+                    const aMatch = a.grade_levels?.includes(grade) ? 0 : 1;
+                    const bMatch = b.grade_levels?.includes(grade) ? 0 : 1;
+                    return aMatch - bMatch;
+                  })
+                  .map(tb => (
+                    <SelectItem key={tb.id} value={tb.id}>
+                      <span className="flex items-center gap-2">
+                        <BookText className="w-3.5 h-3.5 text-muted-foreground" />
+                        {tb.title}
+                        {tb.grade_levels?.includes(grade) && tb.id !== "none" && (
+                          <span className="text-xs text-primary">({t("addSubject.recommended")})</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1.5">
