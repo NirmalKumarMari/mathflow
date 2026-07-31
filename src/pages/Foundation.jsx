@@ -11,11 +11,16 @@ import { base44 } from "@/api/base44Client";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { useI18n } from "@/hooks/useI18n";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
+import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
+import { useTextbookTopics } from "@/hooks/useTextbookTopics";
 import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
-import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
+import VideoPlayerOverlay from "@/components/video/VideoPlayerOverlay";
+import BookModeSelector from "@/components/foundation/BookModeSelector";
 import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
 import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils";
+
+const BOOKS = AVAILABLE_TEXTBOOKS.filter(tb => tb.id !== "none");
 
 export default function Foundation() {
   const [searchParams] = useSearchParams();
@@ -28,6 +33,7 @@ export default function Foundation() {
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
   const [lessonMode, setLessonMode] = useState("ai");
+  const [activeVideo, setActiveVideo] = useState(null);
 
   const [practiceAnswers, setPracticeAnswers] = useState({});
   const [practiceResults, setPracticeResults] = useState(null);
@@ -37,6 +43,12 @@ export default function Foundation() {
   const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
   const [customTopic, setCustomTopic] = useState(null);
   const [loadedSubject, setLoadedSubject] = useState(null);
+
+  const [bookId, setBookId] = useState("");
+  const [bookTopicId, setBookTopicId] = useState("");
+  const selectedBook = BOOKS.find(b => b.id === bookId);
+  const { topics: bookTopics } = useTextbookTopics(selectedBook);
+  const bookTopic = bookTopics.find(tp => tp.id === bookTopicId);
 
   useEffect(() => {
     if (subjectId) {
@@ -55,9 +67,10 @@ export default function Foundation() {
     }
   }, [selectedTopicId, syllabusTopic, loadedSubject]);
 
-  const selectedTopic = syllabusTopic || customTopic;
+  const selectedTopic = lessonMode === "book" ? bookTopic : (syllabusTopic || customTopic);
   const topicMastery = masteries.find(m => m.topic === selectedTopic?.name);
-  const { videos: youtubeVideos } = useYouTubeVideos(loadedSubject?.youtube_videos_url);
+  const tutoringLanguage = lessonMode === "book" && selectedBook ? selectedBook.language : getSubjectLanguage(loadedSubject, profile);
+  const { videos: youtubeVideos } = useYouTubeVideos(lessonMode === "book" ? selectedBook?.youtube_videos_url : loadedSubject?.youtube_videos_url);
   const topicVideos = getVideosForTopic(youtubeVideos, selectedTopic);
 
   const weakTopics = SYLLABUS_TOPICS.filter(tp => {
@@ -73,10 +86,9 @@ export default function Foundation() {
     setPracticeAnswers({});
     setPracticeResults(null);
 
-    const useTextbook = lessonMode === "book" && loadedSubject?.textbook_url;
-    const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
+    const useTextbookFile = lessonMode === "book" && !!selectedBook?.textbook_url;
     const llmParams = {
-      prompt: `${useTextbook ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${topic.name}".
+      prompt: `${useTextbookFile ? "Use the attached textbook as your primary reference. Base the lesson content, examples, and practice problems on the material from the textbook.\n\n" : ""}You are a teacher creating a structured study guide for the topic "${topic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Preferred learning style: ${profile?.preferred_explanation_style || "step-by-step"}
 Subtopics: ${(topic.subtopics || []).join(", ")}
@@ -88,6 +100,8 @@ Create a comprehensive foundational lesson following this structure:
 3. Worked Examples — Provide 2 fully worked examples with step-by-step solutions.
 4. Common Mistakes — List 3 common errors students make and how to avoid them.
 5. Practice Problems — Create exactly 4 practice problems (labeled A, B, C, D) at beginner difficulty with their correct answers. Make them straightforward.
+
+Do not include links to external videos or websites in your response.
 
 Return JSON:
 {
@@ -124,12 +138,12 @@ Return JSON:
       }
     };
 
-    if (useTextbook) llmParams.file_urls = [loadedSubject.textbook_url];
+    if (useTextbookFile) llmParams.file_urls = [selectedBook.textbook_url];
     const response = await base44.integrations.Core.InvokeLLM(llmParams);
     setContent(response);
     setExpandedSection("conceptual_foundation");
     setLoading(false);
-  }, [selectedTopic, lessonMode, loadedSubject, profile]);
+  }, [selectedTopic, lessonMode, selectedBook, tutoringLanguage, profile]);
 
   // Auto-load when the resolved topic changes and no content is loaded yet
   useEffect(() => {
@@ -152,7 +166,7 @@ Return JSON:
 Question: ${p.question}
 Correct Answer: ${p.correct_answer}
 Student Answer: ${answer}
-Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
+Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${getLanguageInstruction(tutoringLanguage)}`,
           response_json_schema: {
             type: "object",
             properties: { is_correct: { type: "boolean" } }
@@ -201,6 +215,30 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${
     setContent(null);
     setPracticeResults(null);
     setPracticeAnswers({});
+    setActiveVideo(null);
+  };
+
+  const handleBookSelect = (v) => {
+    setBookId(v);
+    setBookTopicId("");
+    setContent(null);
+    setPracticeResults(null);
+    setPracticeAnswers({});
+    setActiveVideo(null);
+  };
+
+  const handleBookTopicSelect = (v) => {
+    setBookTopicId(v);
+    setContent(null);
+    setPracticeResults(null);
+    setPracticeAnswers({});
+    setActiveVideo(null);
+  };
+
+  const handleModeChange = (mode) => {
+    setLessonMode(mode);
+    setContent(null);
+    setActiveVideo(null);
   };
 
   return (
@@ -219,7 +257,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${
       {/* Lesson Mode Toggle */}
       <div className="flex gap-2 p-1 bg-muted rounded-xl">
         <button
-          onClick={() => setLessonMode("ai")}
+          onClick={() => handleModeChange("ai")}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
             lessonMode === "ai" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
@@ -227,7 +265,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${
           <Sparkles className="w-4 h-4" /> {t("foundation.aiLesson")}
         </button>
         <button
-          onClick={() => setLessonMode("book")}
+          onClick={() => handleModeChange("book")}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
             lessonMode === "book" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
@@ -238,64 +276,67 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${
 
       {/* Topic selector */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <Select value={selectedTopicId} onValueChange={handleTopicSelect}>
-              <SelectTrigger>
-                <SelectValue placeholder={t("foundation.chooseTopic")} />
-              </SelectTrigger>
-              <SelectContent>
-                {loadedSubject?.topics?.length
-                  ? loadedSubject.topics.map(tp => (
-                    <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
-                  ))
-                  : weakTopics.length > 0 ? weakTopics.map(tp => (
-                    <SelectItem key={tp.id} value={tp.id}>
-                      {tp.name} — {masteries.find(m => m.topic === tp.name)?.mastery_score || 0}%
-                    </SelectItem>
-                  )) : SYLLABUS_TOPICS.map(tp => (
-                    <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
-                  ))
-                }
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedTopicId && (
-            <Button onClick={() => loadContent()} disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {content ? t("foundation.reload") : t("foundation.loadLesson")}
-            </Button>
-          )}
-        </div>
+        {lessonMode === "ai" && (
+          <>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Select value={selectedTopicId} onValueChange={handleTopicSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("foundation.chooseTopic")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadedSubject?.topics?.length
+                      ? loadedSubject.topics.map(tp => (
+                        <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
+                      ))
+                      : weakTopics.length > 0 ? weakTopics.map(tp => (
+                        <SelectItem key={tp.id} value={tp.id}>
+                          {tp.name} — {masteries.find(m => m.topic === tp.name)?.mastery_score || 0}%
+                        </SelectItem>
+                      )) : SYLLABUS_TOPICS.map(tp => (
+                        <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedTopicId && (
+                <Button onClick={() => loadContent()} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {content ? t("foundation.reload") : t("foundation.loadLesson")}
+                </Button>
+              )}
+            </div>
 
-        {lessonMode === "book" && !loadedSubject?.textbook_url && (
-          <div className="mt-3 p-4 rounded-xl bg-muted/50 text-center">
-            <Library className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {t("foundation.noTextbook")}
-            </p>
-          </div>
-        )}
-        {lessonMode === "book" && loadedSubject?.textbook_url && !selectedTopicId && (
-          <div className="mt-3 p-4 rounded-xl bg-primary/5 text-center">
-            <Library className="w-8 h-8 text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {t("foundation.textbookLoaded")} {loadedSubject.textbook_title || "Textbook"}. {t("foundation.selectTopicToRead")}
-            </p>
-          </div>
+            {weakTopics.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-muted-foreground">{t("foundation.topicsNeedingWork")}</span>
+                {weakTopics.map(tp => (
+                  <button key={tp.id} onClick={() => handleTopicSelect(tp.id)} className="text-xs">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-700">
+                      {tp.name}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        {lessonMode === "ai" && weakTopics.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-muted-foreground">{t("foundation.topicsNeedingWork")}</span>
-            {weakTopics.map(tp => (
-              <button key={tp.id} onClick={() => handleTopicSelect(tp.id)} className="text-xs">
-                <Badge variant="outline" className="cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-700">
-                  {tp.name}
-                </Badge>
-              </button>
-            ))}
-          </div>
+        {lessonMode === "book" && (
+          <BookModeSelector
+            books={BOOKS}
+            bookId={bookId}
+            onBookChange={handleBookSelect}
+            selectedBook={selectedBook}
+            bookTopics={bookTopics}
+            bookTopicId={bookTopicId}
+            onBookTopicChange={handleBookTopicSelect}
+            loading={loading}
+            content={content}
+            onLoad={() => loadContent()}
+            t={t}
+          />
         )}
       </Card>
 
@@ -414,32 +455,46 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}${
 
       {/* YouTube Videos */}
       {topicVideos.length > 0 && content && !loading && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
             <Youtube className="w-5 h-5 text-primary" /> {t("foundation.videoLessons")}
           </h3>
-          {topicVideos.map((vid, i) => (
-            <YouTubeEmbed key={i} videoId={vid} title={`Video ${i + 1}`} />
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {topicVideos.map((vid, i) => (
+              <Button
+                key={i}
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveVideo(vid)}
+                className="gap-2"
+              >
+                <Youtube className="w-4 h-4" /> {t("foundation.watchVideo")}{topicVideos.length > 1 ? ` ${i + 1}` : ""}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Empty state */}
-      {!selectedTopicId && !loading && (lessonMode === "ai" || (lessonMode === "book" && loadedSubject?.textbook_url)) && (
+      {!selectedTopic && !loading && (
         <Card className="p-10 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-display font-semibold text-foreground mb-2">{t("foundation.chooseToBegin")}</h3>
           <p className="text-sm text-muted-foreground">
-            {weakTopics.length === 1
+            {lessonMode === "ai" && weakTopics.length === 1
               ? t("foundation.weakTopicsSingular")
-              : weakTopics.length > 1
+              : lessonMode === "ai" && weakTopics.length > 1
                 ? t("foundation.weakTopicsPlural").replace("{n}", weakTopics.length)
                 : t("foundation.selectAnyTopic")}
           </p>
         </Card>
       )}
 
-      <HelpChat context={selectedTopic ? `Foundation lesson on ${selectedTopic.name}` : "Foundation lessons"} language={getSubjectLanguage(loadedSubject, profile)} />
+      <HelpChat context={selectedTopic ? `Foundation lesson on ${selectedTopic.name}` : "Foundation lessons"} language={tutoringLanguage} />
+
+      {activeVideo && (
+        <VideoPlayerOverlay videoId={activeVideo} title={selectedTopic?.name} onClose={() => setActiveVideo(null)} />
+      )}
     </div>
   );
 }

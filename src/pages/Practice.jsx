@@ -15,7 +15,7 @@ import { getSubjectLanguage, getLanguageInstruction } from "@/lib/languageUtils"
 import { useI18n } from "@/hooks/useI18n";
 import StyledMarkdown from "@/components/ui/markdown";
 import HelpChat from "@/components/help/HelpChat";
-import YouTubeEmbed from "@/components/ui/YouTubeEmbed";
+import VideoPlayerOverlay from "@/components/video/VideoPlayerOverlay";
 import { useYouTubeVideos, getVideosForTopic } from "@/hooks/useYouTubeVideos";
 import { Youtube } from "lucide-react";
 
@@ -39,7 +39,7 @@ export default function Practice() {
   const [resources, setResources] = useState("");
   const [sessionQuestions, setSessionQuestions] = useState(0);
   const [sessionCorrect, setSessionCorrect] = useState(0);
-  const [watchVideo, setWatchVideo] = useState(false);
+  const [activeVideo, setActiveVideo] = useState(null);
   const inputRef = useRef(null);
 
   const syllabusTopic = selectedTopicId ? getTopicById(selectedTopicId) : null;
@@ -89,7 +89,7 @@ export default function Practice() {
     setShowFullSolution(false);
     setFullSolution(null);
     setShowResources(false);
-    setWatchVideo(false);
+    setActiveVideo(null);
 
     const difficulty = getDifficulty();
     const subtopicIdx = Math.floor(Math.random() * selectedTopic.subtopics.length);
@@ -466,18 +466,12 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       </Button>
                       )}
                       {!loadingSolution && topicVideos.length > 0 && (
-                        <div className="mt-3">
-                          {watchVideo ? (
-                            <div className="space-y-2">
-                              {topicVideos.map((vid, i) => (
-                                <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} autoplay />
-                              ))}
-                            </div>
-                          ) : (
-                            <Button variant="outline" size="sm" onClick={() => setWatchVideo(true)} className="gap-2 text-violet-700 border-violet-300 hover:bg-violet-100">
-                              <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {topicVideos.map((vid, i) => (
+                            <Button key={i} variant="outline" size="sm" onClick={() => setActiveVideo(vid)} className="gap-2 text-violet-700 border-violet-300 hover:bg-violet-100">
+                              <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}{topicVideos.length > 1 ? ` ${i + 1}` : ""}
                             </Button>
-                          )}
+                          ))}
                         </div>
                       )}
                       </motion.div>
@@ -569,18 +563,12 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                   )}
 
                   {!feedback.is_correct && topicVideos.length > 0 && (
-                    <div>
-                      {watchVideo ? (
-                        <div className="space-y-2">
-                          {topicVideos.map((vid, i) => (
-                            <YouTubeEmbed key={i} videoId={vid} title={`${selectedTopic?.name} video ${i + 1}`} autoplay />
-                          ))}
-                        </div>
-                      ) : (
-                        <Button variant="outline" size="sm" onClick={() => setWatchVideo(true)} className="gap-2 text-rose-700 border-rose-300 hover:bg-rose-100">
-                          <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}
+                    <div className="flex flex-wrap gap-2">
+                      {topicVideos.map((vid, i) => (
+                        <Button key={i} variant="outline" size="sm" onClick={() => setActiveVideo(vid)} className="gap-2 text-rose-700 border-rose-300 hover:bg-rose-100">
+                          <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}{topicVideos.length > 1 ? ` ${i + 1}` : ""}
                         </Button>
-                      )}
+                      ))}
                     </div>
                   )}
                 </motion.div>
@@ -601,6 +589,10 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
       )}
 
       <HelpChat context={selectedTopic ? `Practicing ${selectedTopic.name}. Current question: ${currentQuestion?.question || "None yet"}` : "Math practice"} language={getSubjectLanguage(loadedSubject, profile)} />
+
+      {activeVideo && (
+        <VideoPlayerOverlay videoId={activeVideo} title={selectedTopic?.name} onClose={() => setActiveVideo(null)} />
+      )}
     </div>
   );
 }
