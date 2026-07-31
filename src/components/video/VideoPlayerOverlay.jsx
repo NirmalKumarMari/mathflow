@@ -65,7 +65,7 @@ export default function VideoPlayerOverlay({ videoId, title, onClose }) {
         </div>
         <iframe
           className={isFullscreen ? "w-full h-full" : "absolute top-0 left-0 w-full h-full"}
-          src={`https://www.youtube.com/embed/${id}?autoplay=1`}
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`}
           title={title || "Video lesson"}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
