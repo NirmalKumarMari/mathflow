@@ -103,6 +103,8 @@ Create a comprehensive foundational lesson following this structure:
 
 Do not include links to external videos or websites in your response.
 
+Formatting rules: Write in plain Markdown only. Never use LaTeX syntax (no \(...\), \[...\], $...$, or \frac, \times, \cdot commands). Write formulas using plain text and standard symbols instead (e.g. x², √x, ×, ÷, ±, ≈, π). Use markdown bold/headers/lists for structure.
+
 Return JSON:
 {
   "conceptual_foundation": "markdown text",

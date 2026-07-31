@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 export function useYouTubeVideos(youtubeVideosUrl) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["youtubeVideos", youtubeVideosUrl],
     queryFn: async () => {
       if (!youtubeVideosUrl) return [];
@@ -12,10 +12,11 @@ export function useYouTubeVideos(youtubeVideosUrl) {
     enabled: !!youtubeVideosUrl,
     staleTime: Infinity,
   });
+  return { ...query, videos: query.data || [] };
 }
 
 export function getVideosForTopic(allVideos, topic) {
-  if (!topic || !allVideos) return [];
+  if (!topic) return [];
   const fromTopic = (topic.youtube_videos || []).map(v =>
     typeof v === 'string' ? v : v.url || v.youtube_id || v.video_id || ''
   );
