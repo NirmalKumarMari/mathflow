@@ -402,9 +402,17 @@ Create a personalized study guide. Return JSON:
                       </Select>
                     </div>
                     {formData.country && (
-                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">{languageFromCountry(formData.country)}</span> will be used as your tutoring language.
-                        {languageFromCountry(formData.country) === "English" && " You'll be tutored in English."}
+                      <div>
+                        <Label>Language for lessons & practice</Label>
+                        <Select value={formData.language} onValueChange={v => setFormData({ ...formData, language: v })}>
+                          <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {LANGUAGE_OPTIONS.map(lang => (
+                              <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">Defaulted based on your country — change it if you'd prefer a different language.</p>
                       </div>
                     )}
                   </div>

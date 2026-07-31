@@ -10,7 +10,8 @@ export const SYLLABUS_TOPICS = [
       "Proportional Relationships from Graphs",
       "Proportional Relationships from Equations",
       "Comparing Constants of Proportional Relationships"
-    ]
+    ],
+    youtube_videos: ["HpdMJaKaXXc"]
   },
   {
     id: "rates_percentages",
@@ -21,7 +22,8 @@ export const SYLLABUS_TOPICS = [
       "Percentages to Fractions", "Decimal Representation of Percentages",
       "Converting Between Percentage Forms", "Common Percentages",
       "Percentage Word Problems", "Tax and Tip Word Problems", "Fractions to Decimals"
-    ]
+    ],
+    youtube_videos: ["e1Cd0XL5OEs"]
   },
   {
     id: "order_of_operations",
@@ -30,7 +32,8 @@ export const SYLLABUS_TOPICS = [
     subtopics: [
       "Exponents", "Exponents with Negative Bases", "Zeroth Power",
       "Decimal Exponents", "Fractional Exponents", "PEMDAS"
-    ]
+    ],
+    youtube_videos: ["ClYdw4d4OmA"]
   },
   {
     id: "negative_numbers",
@@ -42,7 +45,8 @@ export const SYLLABUS_TOPICS = [
       "Adding and Subtracting Negative Numbers",
       "Dividing and Multiplying Negative Numbers",
       "Ordering Negative Numbers", "Absolute Value"
-    ]
+    ],
+    youtube_videos: ["u8UKdNdpkh4"]
   },
   {
     id: "variables_expressions",
@@ -53,7 +57,8 @@ export const SYLLABUS_TOPICS = [
       "Least Common Multiple", "Greatest Common Factor",
       "Algebraic Expression Word Problems", "Distributive Property",
       "Combining Like Terms", "Equivalent Expressions"
-    ]
+    ],
+    youtube_videos: ["UvDcEvDC4vg"]
   },
   {
     id: "equations_inequalities",
@@ -66,7 +71,8 @@ export const SYLLABUS_TOPICS = [
       "Inequalities with Variables", "Plotting Inequalities",
       "Two-Step Equations", "Two-Step Equations with Decimals and Fractions",
       "One-Step Inequalities", "Two-Step Inequalities"
-    ]
+    ],
+    youtube_videos: ["jWpiMu5LNdg"]
   },
   {
     id: "statistics_probability",
@@ -82,7 +88,8 @@ export const SYLLABUS_TOPICS = [
       "Tree Diagrams", "Sample Spaces",
       "Comparing Distributions with Dot Plots",
       "Reasonable Samples and Valid Claims"
-    ]
+    ],
+    youtube_videos: ["k3aKKasOmIw"]
   },
   {
     id: "coordinate_plane",
@@ -93,7 +100,8 @@ export const SYLLABUS_TOPICS = [
       "Quadrants of a Coordinate Plane",
       "Drawing a Quadrilateral on a Coordinate Plane",
       "Finding the Area of a Parallelogram on a Coordinate Plane"
-    ]
+    ],
+    youtube_videos: ["pAlq9fFwtus"]
   },
   {
     id: "basic_geometry",
@@ -110,7 +118,8 @@ export const SYLLABUS_TOPICS = [
       "Finding Area Given Circumference", "Arc Length",
       "Complementary and Supplementary Angles", "Vertical Angles",
       "Triangle Inequality Theorem", "Isosceles Triangles"
-    ]
+    ],
+    youtube_videos: ["tFhBAeZVTMw"]
   },
   {
     id: "scale_copies",
@@ -119,7 +128,8 @@ export const SYLLABUS_TOPICS = [
     subtopics: [
       "Identifying Scale Copies", "Identifying Scale Factors",
       "Scale Drawings", "Scale Factors and Area"
-    ]
+    ],
+    youtube_videos: ["ZeY1mgog2YQ"]
   }
 ];
 
