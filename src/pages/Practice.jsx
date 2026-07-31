@@ -270,7 +270,7 @@ Provide:
 3. A common mistake to watch out for
 4. An encouraging tip
 
-Format with markdown.${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
+Format with markdown. Do not include links to external videos or websites.${getLanguageInstruction(getSubjectLanguage(loadedSubject, profile))}`,
     });
     setResources(res);
   };
@@ -439,6 +439,15 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
                       </Button>
                     )}
                   </div>
+                  {topicVideos.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {topicVideos.map((vid, i) => (
+                        <Button key={i} variant="outline" size="sm" onClick={() => setActiveVideo(vid)} className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-100">
+                          <Youtube className="w-4 h-4" /> {t("practice.watchVideo")}{topicVideos.length > 1 ? ` ${i + 1}` : ""}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               )}
 

@@ -17,6 +17,7 @@ import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
 import { base44 } from "@/api/base44Client";
 
 const ONBOARDING_TEXTBOOKS = AVAILABLE_TEXTBOOKS.filter(tb => tb.topics?.length > 0);
+const LANGUAGE_OPTIONS = ["English", "Bengali", "Hindi", "Arabic", "French", "Spanish", "German", "Urdu"];
 
 const STEPS = ["Welcome", "About You", "Country & Syllabus", "Your Goals", "Getting Started", "Quick Quiz"];
 
@@ -197,7 +198,7 @@ Create a personalized study guide. Return JSON:
         grade_level: formData.grade_level,
         description: `Study guide for ${selectedTextbook.title}`,
         color: "violet",
-        language: selectedTextbook.language,
+        language: formData.language || selectedTextbook.language,
         topics: selectedTextbook.topics,
         textbook_url: selectedTextbook.textbook_url,
         textbook_title: selectedTextbook.title,
@@ -433,9 +434,23 @@ Create a personalized study guide. Return JSON:
                       </Select>
                     </div>
                     {selectedTextbook && (
-                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
-                        This book's content will drive your lessons, practice, and flashcards. <span className="font-medium text-foreground">{selectedTextbook.language}</span> will be used as your tutoring language.
-                      </div>
+                      <>
+                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                          This book's content will drive your lessons, practice, and flashcards. <span className="font-medium text-foreground">{selectedTextbook.language}</span> is used by default, but you can change it below.
+                        </div>
+                        <div>
+                          <Label>Language for lessons & practice</Label>
+                          <Select value={formData.language} onValueChange={v => setFormData({ ...formData, language: v })}>
+                            <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {LANGUAGE_OPTIONS.map(lang => (
+                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">Content will still follow the book — only the language changes.</p>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
