@@ -14,7 +14,7 @@ import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import { COUNTRIES, getSyllabiForCountry } from "@/lib/countries";
 import { languageFromCountry, getLanguageInstruction } from "@/lib/languageUtils";
 import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 
 const ONBOARDING_TEXTBOOKS = AVAILABLE_TEXTBOOKS.filter(tb => tb.topics?.length > 0);
 const LANGUAGE_OPTIONS = ["English", "Bengali", "Hindi", "Arabic", "French", "Spanish", "German", "Urdu"];
@@ -65,7 +65,7 @@ export default function Onboarding() {
     // Pick up to 5 topics to quiz on (one question each)
     const topicsToQuiz = topics.slice(0, Math.min(5, topics.length));
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await api.integrations.Core.InvokeLLM({
       prompt: `Generate a short diagnostic quiz for a ${formData.grade_level} grade ${subjectName} student (age ${formData.age}).
 Goals: "${formData.goals}"
 
@@ -116,7 +116,7 @@ Return JSON:
         const answer = quizAnswers[q.topic] || "";
         if (!answer.trim()) return { topic: q.topic, is_correct: false, score: 0 };
 
-        const evalRes = await base44.integrations.Core.InvokeLLM({
+        const evalRes = await api.integrations.Core.InvokeLLM({
           prompt: `Math answer evaluation.
 Question: ${q.question}
 Correct Answer: ${q.correct_answer}
@@ -150,7 +150,7 @@ Is the student's answer correct? Consider equivalent forms. Return JSON: {"is_co
     });
 
     // Generate study guide based on quiz results
-    const guideResponse = await base44.integrations.Core.InvokeLLM({
+    const guideResponse = await api.integrations.Core.InvokeLLM({
       prompt: `You are an educational planning assistant. A ${formData.grade_level} grade student (age ${formData.age}) just completed a diagnostic quiz.
 
 Quiz Results:
@@ -192,7 +192,7 @@ Create a personalized study guide. Return JSON:
 
     let createdSubjectId = null;
     if (syllabusMode === "textbook" && selectedTextbook) {
-      const subject = await base44.entities.Subject.create({
+      const subject = await api.entities.Subject.create({
         name: selectedTextbook.title,
         subject_type: "custom",
         grade_level: formData.grade_level,
@@ -207,7 +207,7 @@ Create a personalized study guide. Return JSON:
       createdSubjectId = subject.id;
     }
 
-    await base44.entities.StudyGuide.create({
+    await api.entities.StudyGuide.create({
       version: 1,
       status: "pending",
       subject_id: createdSubjectId,
@@ -219,7 +219,7 @@ Create a personalized study guide. Return JSON:
 
     // Initialize topic masteries with quiz scores
     const topicsToCreate = topics;
-    await base44.entities.TopicMastery.bulkCreate(
+    await api.entities.TopicMastery.bulkCreate(
       topicsToCreate.map(t => ({
         topic: t.name,
         mastery_score: topicScores[t.name] ?? 0,

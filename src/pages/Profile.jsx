@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useSubjects } from "@/hooks/useSubjects";
 import { COUNTRIES } from "@/lib/countries";
@@ -32,7 +32,7 @@ export default function Profile() {
   }
 
   const handleLogout = () => {
-    base44.auth.logout("/login");
+    api.auth.logout("/login");
   };
 
   const countryInfo = COUNTRIES.find(c => c.name === profile.country);

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle, XCircle, Lightbulb, BookOpen, ArrowRight, Loader2, RotateCcw, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
 import { getProblemCreatorPrompt } from "@/lib/agentPrompts";
@@ -49,7 +49,7 @@ export default function Practice() {
 
   useEffect(() => {
     if (subjectId) {
-      base44.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
+      api.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
     } else {
       setLoadedSubject(null);
     }
@@ -120,14 +120,14 @@ export default function Practice() {
 
     // Try problem bank first — avoids unnecessary LLM calls
     try {
-      const bankMatches = await base44.entities.ProblemBank.filter({
+      const bankMatches = await api.entities.ProblemBank.filter({
         topic: selectedTopic.name,
         difficulty,
         language: tutoringLanguage,
       });
       if (bankMatches.length > 0) {
         const pick = bankMatches[Math.floor(Math.random() * bankMatches.length)];
-        await base44.entities.ProblemBank.update(pick.id, {
+        await api.entities.ProblemBank.update(pick.id, {
           times_used: (pick.times_used || 0) + 1
         });
         setCurrentQuestion({
@@ -146,11 +146,11 @@ export default function Practice() {
       // fall through to LLM
     }
 
-    const response = await base44.integrations.Core.InvokeLLM(llmParams);
+    const response = await api.integrations.Core.InvokeLLM(llmParams);
 
     // Save to problem bank for future reuse
     try {
-      await base44.entities.ProblemBank.create({
+      await api.entities.ProblemBank.create({
         topic: selectedTopic.name,
         subtopic: response.subtopic,
         difficulty: response.difficulty,
@@ -175,7 +175,7 @@ export default function Practice() {
     if (!answer.trim() || !currentQuestion) return;
     setLoading(true);
 
-    const evalResponse = await base44.integrations.Core.InvokeLLM({
+    const evalResponse = await api.integrations.Core.InvokeLLM({
       prompt: `You are evaluating a math answer. Be precise but kind.
 
 Question: ${currentQuestion.question}
@@ -231,7 +231,7 @@ Return JSON:
     });
 
     // Save question record
-    await base44.entities.PracticeQuestion.create({
+    await api.entities.PracticeQuestion.create({
       topic: selectedTopic.name,
       subtopic: currentQuestion.subtopic,
       difficulty: currentQuestion.difficulty,
@@ -256,7 +256,7 @@ Return JSON:
 
   const loadResources = async () => {
     setShowResources(true);
-    const res = await base44.integrations.Core.InvokeLLM({
+    const res = await api.integrations.Core.InvokeLLM({
       prompt: `Provide a helpful explanation and resources for this math problem:
 Topic: ${selectedTopic.name}
 Question: ${currentQuestion.question}
@@ -281,7 +281,7 @@ Format with markdown. Do not include links to external videos or websites.${getL
     setShowFullSolution(true);
 
     // Generate full step-by-step solution
-    const solution = await base44.integrations.Core.InvokeLLM({
+    const solution = await api.integrations.Core.InvokeLLM({
       prompt: `Provide a complete, detailed step-by-step solution for this math problem.
 Topic: ${selectedTopic.name}
 Question: ${currentQuestion.question}
@@ -315,7 +315,7 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
     });
 
     // Save question record as incorrect (used full solution)
-    await base44.entities.PracticeQuestion.create({
+    await api.entities.PracticeQuestion.create({
       topic: selectedTopic.name,
       subtopic: currentQuestion.subtopic,
       difficulty: currentQuestion.difficulty,
@@ -329,12 +329,12 @@ Walk through every step clearly. Explain WHY each step is done, not just what to
 
     // Update study guide to flag this topic as needing work
     try {
-      const guides = await base44.entities.StudyGuide.filter({}, "-created_date", 1);
+      const guides = await api.entities.StudyGuide.filter({}, "-created_date", 1);
       const latestGuide = guides[0];
       if (latestGuide) {
         const updatedGaps = [...new Set([...(latestGuide.gaps || []), selectedTopic.name])];
         const updatedStrengths = (latestGuide.strengths || []).filter(s => s !== selectedTopic.name);
-        await base44.entities.StudyGuide.update(latestGuide.id, {
+        await api.entities.StudyGuide.update(latestGuide.id, {
           gaps: updatedGaps,
           strengths: updatedStrengths,
         });

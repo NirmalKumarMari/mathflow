@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Sparkles, Loader2, CheckCircle, XCircle, Play, FileText, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudentProfile, useStudyGuides } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
@@ -104,7 +104,7 @@ Return JSON:
       llmParams.prompt = `Use the attached textbook as the primary reference for creating this placement test.\n\n${llmParams.prompt}`;
     }
 
-    const response = await base44.integrations.Core.InvokeLLM(llmParams);
+    const response = await api.integrations.Core.InvokeLLM(llmParams);
     setQuestions(response.questions || []);
     setPhase("questions");
     setLoading(false);
@@ -116,7 +116,7 @@ Return JSON:
       questions.map(async (q, i) => {
         const answer = answers[i] || "";
         if (!answer.trim()) return { ...q, is_correct: false, student_answer: "" };
-        const evalRes = await base44.integrations.Core.InvokeLLM({
+        const evalRes = await api.integrations.Core.InvokeLLM({
           prompt: `Evaluate this answer.
 Question: ${q.question}
 Correct Answer: ${q.correct_answer}
@@ -140,7 +140,7 @@ Is correct? Consider equivalent forms. Return JSON: {"is_correct": true/false}`,
       if (r.is_correct) topicResults[r.topic_name].correct++;
     });
 
-    const guideResponse = await base44.integrations.Core.InvokeLLM({
+    const guideResponse = await api.integrations.Core.InvokeLLM({
       prompt: `Create a personalized study guide for a student in "${subject.name}".
 
 Placement test results:

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, BookOpen, Lightbulb, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, ArrowRight, Sparkles, Library, Youtube } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useStudentProfile, useTopicMasteries } from "@/hooks/useStudentProfile";
 import { useI18n } from "@/hooks/useI18n";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
@@ -52,7 +52,7 @@ export default function Foundation() {
 
   useEffect(() => {
     if (subjectId) {
-      base44.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
+      api.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
     } else {
       setLoadedSubject(null);
     }
@@ -141,7 +141,7 @@ Return JSON:
     };
 
     if (useTextbookFile) llmParams.file_urls = [selectedBook.textbook_url];
-    const response = await base44.integrations.Core.InvokeLLM(llmParams);
+    const response = await api.integrations.Core.InvokeLLM(llmParams);
     setContent(response);
     setExpandedSection("conceptual_foundation");
     setLoading(false);
@@ -163,7 +163,7 @@ Return JSON:
         const answer = practiceAnswers[p.label] || "";
         if (!answer.trim()) return { label: p.label, is_correct: false, question: p.question, correct_answer: p.correct_answer, student_answer: "" };
 
-        const evalRes = await base44.integrations.Core.InvokeLLM({
+        const evalRes = await api.integrations.Core.InvokeLLM({
           prompt: `Evaluation.
 Question: ${p.question}
 Correct Answer: ${p.correct_answer}

@@ -1,8 +1,8 @@
 /**
- * Available textbooks — managed by the app builder, not the end user.
+ * Available textbooks — managed by whoever maintains the app, not the end user.
  *
  * To add a textbook:
- *   1. Upload the PDF via the Files section (or ask Base44 to upload it for you).
+ *   1. Upload the PDF/JSON to your own file storage (e.g. a public GCS bucket).
  *   2. Copy the resulting file URL into `textbook_url` below.
  *   3. Set `language` to the textbook's language (e.g. "Bengali", "Arabic").
  *      When set, tutoring for this subject will be in that language.
