@@ -11,7 +11,7 @@ API for tutoring, question generation, and grading.
 cd server
 cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY, etc.
 npm install
-npm run migrate        # applies migrations/001_init.sql
+npm run migrate        # applies any pending files in migrations/
 npm run dev             # http://localhost:8080
 
 # Frontend (separate shell)

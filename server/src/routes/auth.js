@@ -4,13 +4,23 @@ import crypto from 'crypto';
 import { query } from '../db.js';
 import { requireAuth, signUserToken } from '../middleware/auth.js';
 import { sendMail } from '../mailer.js';
+import { sendSms } from '../sms.js';
 
 const router = Router();
 
 const OTP_TTL_MINUTES = 10;
 const RESET_TTL_MINUTES = 30;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const PHONE_RE = /^\+[1-9]\d{6,14}$/; // E.164, e.g. +14155551234
 
-const publicUser = (u) => ({ id: u.id, email: u.email, role: u.role, email_verified: u.email_verified });
+const publicUser = (u) => ({
+  id: u.id,
+  email: u.email,
+  role: u.role,
+  email_verified: u.email_verified,
+  phone: u.phone,
+  phone_verified: u.phone_verified,
+});
 
 const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex');
 const generateOtp = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
@@ -159,6 +169,68 @@ router.post('/reset-password', async (req, res) => {
   await query('update password_reset_tokens set consumed = true where id = $1', [rows[0].id]);
 
   res.json({ ok: true });
+});
+
+// --- Phone + OTP (passwordless: requesting/verifying a code logs in an
+// existing phone number or registers a new one, same as the flow below for
+// email OTP but with no separate register step) ---
+
+router.post('/phone/request-otp', async (req, res) => {
+  const { phone } = req.body || {};
+  if (!phone || !PHONE_RE.test(phone)) {
+    return res.status(400).json({ error: 'Enter a valid phone number in international format, e.g. +14155551234' });
+  }
+
+  const { rows: recent } = await query(
+    `select id from phone_otps
+     where phone = $1 and created_at > now() - interval '${OTP_RESEND_COOLDOWN_SECONDS} seconds'
+     order by created_at desc limit 1`,
+    [phone]
+  );
+  if (recent.length) {
+    return res.status(429).json({ error: 'Please wait a bit before requesting another code' });
+  }
+
+  const code = generateOtp();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+  await query(
+    'insert into phone_otps (phone, code_hash, expires_at) values ($1, $2, $3)',
+    [phone, hashToken(code), expiresAt]
+  );
+  await sendSms({ to: phone, body: `Your MathFlow verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.` });
+
+  res.json({ ok: true });
+});
+
+router.post('/phone/verify-otp', async (req, res) => {
+  const { phone, otpCode } = req.body || {};
+  if (!phone || !otpCode) return res.status(400).json({ error: 'Phone and code are required' });
+
+  const { rows } = await query(
+    `select id from phone_otps
+     where phone = $1 and code_hash = $2 and consumed = false and expires_at > now()
+     order by created_at desc limit 1`,
+    [phone, hashToken(otpCode)]
+  );
+  if (!rows.length) {
+    return res.status(400).json({ error: 'Invalid or expired code' });
+  }
+  await query('update phone_otps set consumed = true where id = $1', [rows[0].id]);
+
+  const { rows: existing } = await query('select * from users where phone = $1', [phone]);
+  let user = existing[0];
+  if (!user) {
+    const inserted = await query(
+      'insert into users (phone, phone_verified) values ($1, true) returning *',
+      [phone]
+    );
+    user = inserted.rows[0];
+  } else if (!user.phone_verified) {
+    const updated = await query('update users set phone_verified = true where id = $1 returning *', [user.id]);
+    user = updated.rows[0];
+  }
+
+  res.json({ access_token: signUserToken(user), user: publicUser(user) });
 });
 
 // --- Google OAuth (authorization-code flow, no extra SDK) ---

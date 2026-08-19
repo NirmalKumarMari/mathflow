@@ -140,12 +140,18 @@ export default function Register() {
     >
       <Button
         variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
+        className="w-full h-12 text-sm font-medium mb-3"
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continue with Google
       </Button>
+
+      <Link to="/login?method=phone">
+        <Button variant="outline" className="w-full h-12 text-sm font-medium mb-6">
+          Continue with phone number
+        </Button>
+      </Link>
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">

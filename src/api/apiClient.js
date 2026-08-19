@@ -70,6 +70,14 @@ const auth = {
   async resendOtp(email) {
     return request('/api/auth/resend-otp', { method: 'POST', body: { email }, auth: false });
   },
+  async requestPhoneOtp(phone) {
+    return request('/api/auth/phone/request-otp', { method: 'POST', body: { phone }, auth: false });
+  },
+  async verifyPhoneOtp({ phone, otpCode }) {
+    const result = await request('/api/auth/phone/verify-otp', { method: 'POST', body: { phone, otpCode }, auth: false });
+    if (result.access_token) setToken(result.access_token);
+    return result;
+  },
   async resetPasswordRequest(email) {
     return request('/api/auth/forgot-password', { method: 'POST', body: { email }, auth: false });
   },

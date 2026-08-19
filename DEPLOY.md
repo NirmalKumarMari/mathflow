@@ -49,6 +49,7 @@ printf '%s' "$(openssl rand -hex 32)" | gcloud secrets create jwt-secret --data-
 printf '%s' "CHOOSE_A_STRONG_PASSWORD" | gcloud secrets create db-password --data-file=-
 printf '%s' "sk-ant-..." | gcloud secrets create anthropic-api-key --data-file=-
 printf '%s' "your-google-oauth-client-secret" | gcloud secrets create google-client-secret --data-file=-
+printf '%s' "your-twilio-auth-token" | gcloud secrets create twilio-auth-token --data-file=-
 ```
 
 ## 3. Google OAuth client (for "Continue with Google")
@@ -67,8 +68,8 @@ gcloud run deploy mathflow-api \
   --region=us-central1 \
   --allow-unauthenticated \
   --add-cloudsql-instances=YOUR_PROJECT_ID:us-central1:mathflow-db \
-  --set-env-vars="DB_SOCKET_PATH=/cloudsql/YOUR_PROJECT_ID:us-central1:mathflow-db,DB_USER=mathflow,DB_NAME=mathflow,FRONTEND_URL=https://YOUR_FRONTEND_DOMAIN,BACKEND_URL=https://mathflow-api-xxxx.a.run.app,GOOGLE_CLIENT_ID=your-oauth-client-id,ANTHROPIC_MODEL=claude-sonnet-5" \
-  --set-secrets="DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
+  --set-env-vars="DB_SOCKET_PATH=/cloudsql/YOUR_PROJECT_ID:us-central1:mathflow-db,DB_USER=mathflow,DB_NAME=mathflow,FRONTEND_URL=https://YOUR_FRONTEND_DOMAIN,BACKEND_URL=https://mathflow-api-xxxx.a.run.app,GOOGLE_CLIENT_ID=your-oauth-client-id,ANTHROPIC_MODEL=claude-sonnet-5,TWILIO_ACCOUNT_SID=your-twilio-account-sid,TWILIO_FROM_NUMBER=+14155551234" \
+  --set-secrets="DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest"
 ```
 
 Take the printed service URL, use it as `BACKEND_URL` on redeploy, and add
