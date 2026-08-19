@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import StyledMarkdown from "@/components/ui/markdown";
 import { getLanguageInstruction } from "@/lib/languageUtils";
 
@@ -26,7 +26,7 @@ export default function HelpChat({ context, language }) {
     setLoading(true);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await api.integrations.Core.InvokeLLM({
         prompt: `You are a friendly, encouraging tutor helping a student who is currently studying.
 Context: ${context || "General study help"}
 

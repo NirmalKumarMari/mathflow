@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2, BookText } from "lucide-react";
 import { AVAILABLE_TEXTBOOKS } from "@/lib/textbooks";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { languageFromCountry } from "@/lib/languageUtils";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -74,7 +74,7 @@ export default function AddSubjectDialog({ onCreate }) {
       }
 
       if (topics.length === 0) {
-        const response = await base44.integrations.Core.InvokeLLM({
+        const response = await api.integrations.Core.InvokeLLM({
           prompt: `Generate 6-8 topics for the subject "${name}".
 Description: ${description || "General " + name}
 Approximate level: ${grade}

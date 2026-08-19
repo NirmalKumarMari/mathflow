@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, ThumbsUp, Pencil, RotateCcw, Loader2, Sparkles, Calendar, Brain, Lightbulb, X, Youtube } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useStudentProfile, useTopicMasteries, useStudyGuides } from "@/hooks/useStudentProfile";
 import { SYLLABUS_TOPICS } from "@/lib/syllabus";
 import StyledMarkdown from "@/components/ui/markdown";
@@ -37,7 +37,7 @@ export default function StudyGuidePage() {
   const [subject, setSubject] = useState(null);
   useEffect(() => {
     if (subjectId) {
-      base44.entities.Subject.get(subjectId).then(setSubject).catch(() => {});
+      api.entities.Subject.get(subjectId).then(setSubject).catch(() => {});
     } else {
       setSubject(null);
     }
@@ -77,9 +77,9 @@ export default function StudyGuidePage() {
     setReviewLoading(true);
     try {
       // Fetch recent practice questions
-      const recentQuestions = await base44.entities.PracticeQuestion.list("-created_date", 20);
+      const recentQuestions = await api.entities.PracticeQuestion.list("-created_date", 20);
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await api.integrations.Core.InvokeLLM({
         prompt: `You are an educational AI analyzing a student's weekly performance to improve their study guide.
 
 Student grade: ${profile?.grade_level || "adaptive"}
@@ -180,7 +180,7 @@ Return JSON:
     if (!latestGuide || !adjustText.trim()) return;
     setLoading(true);
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await api.integrations.Core.InvokeLLM({
       prompt: `You are an educational planning assistant revising a study guide.
 
 Current guide:
@@ -236,7 +236,7 @@ Revise the study guide based on the student's request. Return JSON:
 
     await updateGuide.mutateAsync({ id: latestGuide.id, data: { status: "declined" } });
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await api.integrations.Core.InvokeLLM({
       prompt: `Create a completely new study guide for a ${profile.grade_level} grade student.
 Goals: ${profile.goals}
 Available topics: ${SYLLABUS_TOPICS.filter(t => t.grades.includes(profile.grade_level) || profile.grade_level === "adaptive").map(t => t.name).join(", ")}

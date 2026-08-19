@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Layers, Loader2, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2, RotateCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useI18n } from "@/hooks/useI18n";
 import { SYLLABUS_TOPICS, getTopicById } from "@/lib/syllabus";
@@ -34,7 +34,7 @@ export default function Flashcards() {
 
   useEffect(() => {
     if (subjectId) {
-      base44.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
+      api.entities.Subject.get(subjectId).then(setLoadedSubject).catch(() => {});
     } else {
       setLoadedSubject(null);
     }
@@ -68,7 +68,7 @@ export default function Flashcards() {
     setFinished(false);
 
     const tutoringLanguage = getSubjectLanguage(loadedSubject, profile);
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await api.integrations.Core.InvokeLLM({
       prompt: `${loadedSubject?.textbook_url ? "Use the attached textbook as your primary reference. Base ALL flashcards on the material from the textbook.\n\n" : ""}You are creating study flashcards for the topic "${selectedTopic.name}".
 Student grade: ${profile?.grade_level || "adaptive"}
 Subtopics: ${(selectedTopic.subtopics || []).join(", ")}
